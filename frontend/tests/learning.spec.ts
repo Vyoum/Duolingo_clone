@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 
+test.beforeEach(async ({ context }, testInfo) => {
+  const baseURL = testInfo.project.use.baseURL;
+  if (typeof baseURL !== "string") throw new Error("Playwright baseURL is required");
+  await context.addCookies([{ name: "duo_demo_session", value: "1", url: baseURL }]);
+});
+
 // Runs against the real stack; never resets or deletes learner data.
 test("complete all five exercise types, resume, unlock, and persist rewards", async ({ page, request }) => {
   const beforeResponse = await request.get("/api/v1/me");

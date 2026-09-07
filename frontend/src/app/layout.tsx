@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 import { AppProviders } from "@/components/layout/AppProviders";
+import { ServiceStartup } from "@/components/layout/ServiceStartup";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${nunito.variable} h-full`}>
       <body className="min-h-full bg-[var(--duo-bg)] font-sans text-[var(--duo-text)] antialiased">
-        <AppProviders>{children}</AppProviders>
+        {process.env.WARMUP_ENABLED === "true" ? (
+          <ServiceStartup><AppProviders>{children}</AppProviders></ServiceStartup>
+        ) : <AppProviders>{children}</AppProviders>}
       </body>
     </html>
   );

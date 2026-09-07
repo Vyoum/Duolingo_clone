@@ -2,7 +2,8 @@ import { test, expect } from "@playwright/test";
 
 // Browser contract test with controlled HTTP responses. Persistence and grading
 // are exercised separately by backend tests and learning.spec.ts's real stack test.
-test.beforeEach(async ({ context }, testInfo) => {
+test.beforeEach(async ({ context, page }, testInfo) => {
+  await page.route("**/api/warmup", route => route.fulfill({ json: { ready: true } }));
   const baseURL = testInfo.project.use.baseURL;
   if (typeof baseURL !== "string") throw new Error("Playwright baseURL is required");
   await context.addCookies([
@@ -188,7 +189,7 @@ test("Legendary practice shows a timer, retries safely, awards XP, and returns t
   await page.route("**/api/v1/practice/legendary", route => route.fulfill({ json: session }));
   await page.route("**/api/v1/practice/legendary/*/answers", async route => {
     calls++;
-    if (calls === 1) { await route.abort("failed"); return; }
+    if (calls <= 3) { await route.abort("failed"); return; }
     const body = route.request().postDataJSON();
     const final = body.exercise_id === "two";
     await route.fulfill({ json: { correct: true, timeout: false, completed: final, xp_earned: final ? 15 : 0, position: final ? 2 : 1 } });
@@ -206,7 +207,7 @@ test("Legendary practice shows a timer, retries safely, awards XP, and returns t
   await expect(page.getByRole("heading", { name: "Legendary complete!" })).toBeVisible();
   await expect(page.getByText("You earned 15 XP.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Back to the path" })).toHaveAttribute("href", "/");
-  expect(calls).toBe(3);
+  expect(calls).toBe(5);
 });
 
 test("Legendary practice ends a run when its server deadline has passed", async ({ page }) => {
@@ -372,9 +373,7 @@ for (const width of [390, 1440]) {
     await word("apple").focus();
     await page.keyboard.press("Enter");
     await word("manzana").click();
-    await expect(page.getByRole("button", { name: "Retry saving answer" })).toBeVisible();
     await expect(word("bread")).toBeDisabled();
-    await page.getByRole("button", { name: "Retry saving answer" }).click();
     await expect(word("apple, matched")).toBeDisabled();
     expect(requests[1]).toEqual(requests[2]);
     await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeDisabled();

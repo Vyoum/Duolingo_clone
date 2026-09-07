@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
+import { retryFetch } from "./retry-fetch";
 
 export type Goal = { name: string; current: number; target: number };
 export type Learner = { user_id: string; name: string; xp: number; streak: number; hearts: number; next_heart_at: string | null; lessons_completed: number; achievements: Goal[]; quests: Goal[]; quest_day: string };
@@ -20,7 +21,7 @@ function errorDetail(data: unknown, fallback: string) {
 }
 
 export async function api<T>(path: string, body?: unknown, key?: string): Promise<T> {
-  const response = await fetch(`/api/v1/${path}`, {
+  const response = await retryFetch(`/api/v1/${path}`, {
     method: body === undefined ? "GET" : "POST", cache: "no-store",
     headers: { "Content-Type": "application/json", ...(key ? { "Idempotency-Key": key } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
