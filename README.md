@@ -21,7 +21,7 @@ A full-stack Spanish learning application inspired by Duolingo. It combines a re
 
 ## Features
 
-| Area | Implementation |
+| Area | Impleme
 | --- | --- |
 | Learning path | Responsive zigzag path, server-enforced sequential unlocks, completion crowns, and skill progress rings |
 | Lesson player | Multiple choice, token translation, tap-to-match columns, fill-in-the-blank, and typed answers |
