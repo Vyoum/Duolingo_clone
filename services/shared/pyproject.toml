@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "duolingo-shared"
+version = "0.1.0"
+description = "Shared Pydantic schemas and event contracts for the Duolingo clone microservices"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0,<3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["duolingo_shared*"]
