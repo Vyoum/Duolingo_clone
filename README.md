@@ -42,7 +42,7 @@ npm run dev
 | Local stack | Compose, Dockerfiles, migration/seed startup |
 | Hosting | Vercel configuration and optional Render Blueprint prepared; **not published** |
 
-Audio, speech, Super, and social/profile decoration remain demo placeholders. The social suggestions are fixture data; learner XP, hearts, streak, achievements, and quests are live.
+Super and most social/profile decoration remain demo placeholders. **Speak practice** (`/practice/speak`) uses the browser Web Speech API with a typed fallback, while **Listen practice** (`/practice/listen`) provides normal and slowed TTS playback with an accessible text fallback. The app does not store recordings, and neither mode deducts hearts; recognition processing depends on the browser. The social suggestions are fixture data; learner XP, hearts, streak, achievements, and quests are live.
 
 ## Architecture
 
@@ -150,6 +150,8 @@ All routes use `/api/v1`, through port 8000 or the frontend's same-origin proxy.
 | POST | `/attempts` | Start/resume: `{ "lesson_id": "UUID" }` |
 | GET | `/attempts/{id}` | Saved position and sanitized lesson snapshot |
 | POST | `/attempts/{id}/answers` | Submit `{ "exercise_id": "UUID", "answer": ... }` |
+| POST | `/practice/legendary` | Start an idempotent timed practice session: `{ "duration_seconds": 15–600 }` |
+| POST | `/practice/legendary/{id}/answers` | Grade the current timed exercise; the server rejects stale answers and awards its 15 XP reward once |
 | GET | `/me` | XP, streak, hearts, next regeneration time, achievements, quests |
 | GET | `/leaderboard` | All-time ranking with seeded competitor labels |
 | GET | `/health` | Gateway health and Redis availability (outside `/api/v1`) |

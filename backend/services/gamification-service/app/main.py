@@ -27,6 +27,7 @@ def initialize():
         db.execute('CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, xp INTEGER NOT NULL DEFAULT 0, hearts INTEGER NOT NULL DEFAULT 5 CHECK(hearts BETWEEN 0 AND 5), heart_at REAL NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS events_processed (id TEXT PRIMARY KEY, attempt_id TEXT UNIQUE NOT NULL, user_id TEXT NOT NULL REFERENCES users(id), day TEXT NOT NULL, xp INTEGER NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS heart_operations (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, cost INTEGER NOT NULL, fingerprint TEXT NOT NULL, response TEXT NOT NULL)')
+        db.execute('CREATE TABLE IF NOT EXISTS practice_rewards (session_id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id), xp INTEGER NOT NULL, day TEXT NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
     if SEED_DEMO_LEARNER:
         seed_demo_learner()
@@ -154,10 +155,11 @@ def me(x_user_id: UUID = Header()):
         while day.isoformat() in days:
             streak += 1
             day -= timedelta(days=1)
-        daily = db.execute('SELECT COALESCE(SUM(xp),0), COUNT(*) FROM events_processed WHERE user_id=? AND day=?', (user, today.isoformat())).fetchone()
+        lesson_daily = db.execute('SELECT COALESCE(SUM(xp),0), COUNT(*) FROM events_processed WHERE user_id=? AND day=?', (user, today.isoformat())).fetchone()
+        practice_daily = db.execute('SELECT COALESCE(SUM(xp),0) FROM practice_rewards WHERE user_id=? AND day=?', (user, today.isoformat())).fetchone()[0]
         total = db.execute('SELECT COUNT(*) FROM events_processed WHERE user_id=?', (user,)).fetchone()[0]
         achievements = [{'name': 'First steps', 'current': min(total, 1), 'target': 1}, {'name': 'XP explorer', 'current': min(row['xp'], 100), 'target': 100}, {'name': 'On fire', 'current': min(streak, 3), 'target': 3}]
-        return {'user_id': user, 'name': 'Vyoum', 'xp': row['xp'], 'streak': streak, 'hearts': row['hearts'], 'next_heart_at': None if row['hearts'] == 5 else datetime.fromtimestamp(row['heart_at'] + HEART_SECONDS, timezone.utc).isoformat(), 'lessons_completed': total, 'achievements': achievements, 'quests': [{'name': 'Earn 10 XP today', 'current': min(daily[0], 10), 'target': 10}, {'name': 'Complete 2 lessons today', 'current': min(daily[1], 2), 'target': 2}], 'quest_day': today.isoformat()}
+        return {'user_id': user, 'name': 'Vyoum', 'xp': row['xp'], 'streak': streak, 'hearts': row['hearts'], 'next_heart_at': None if row['hearts'] == 5 else datetime.fromtimestamp(row['heart_at'] + HEART_SECONDS, timezone.utc).isoformat(), 'lessons_completed': total, 'achievements': achievements, 'quests': [{'name': 'Earn 10 XP today', 'current': min(lesson_daily[0] + practice_daily, 10), 'target': 10}, {'name': 'Complete 2 lessons today', 'current': min(lesson_daily[1], 2), 'target': 2}], 'quest_day': today.isoformat()}
 
 
 class HeartOperation(BaseModel):
@@ -184,6 +186,29 @@ def hearts(body: HeartOperation):
         response = {'hearts': remaining}
         db.execute('INSERT INTO heart_operations VALUES(?,?,?,?,?)', (body.operation, user, body.cost, body.fingerprint, json.dumps(response)))
         return response
+
+
+class PracticeReward(BaseModel):
+    user_id: UUID
+    session_id: UUID
+    xp: int = Field(ge=1, le=100)
+
+
+@app.post('/internal/practice-rewards')
+def practice_reward(body: PracticeReward):
+    """Idempotently reward a completed timed practice session."""
+    user, session = str(body.user_id), str(body.session_id)
+    with transaction(DB) as db:
+        user_row(db, user)
+        old = db.execute('SELECT xp FROM practice_rewards WHERE session_id=?', (session,)).fetchone()
+        if old:
+            if old['xp'] != body.xp:
+                raise HTTPException(409, 'Practice reward already exists with different XP')
+            return {'xp_earned': old['xp']}
+        db.execute('INSERT INTO practice_rewards VALUES(?,?,?,?)', (session, user, body.xp, datetime.now(timezone.utc).date().isoformat()))
+        db.execute('UPDATE users SET xp=xp+? WHERE id=?', (body.xp, user))
+    sync_board()
+    return {'xp_earned': body.xp}
 
 
 @app.get('/api/v1/leaderboard')

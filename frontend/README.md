@@ -15,7 +15,7 @@ Start the backend first with `docker compose up --build -d gateway` from the rep
 - `/profile`: live learner stats and achievements, existing decorative profile/social fixtures.
 - `/quests`: live UTC daily goals and achievements.
 - `/leaderboard`: real XP ranking with labeled seeded competitors.
-- `/practice`, `/shop`: existing optional audio/Super placeholders; Practice links to working lessons.
+- `/practice`, `/shop`: Practice includes browser STT **Speak**, normal/slow TTS **Listen**, and server-timed **Legendary** modes; unsupported speech APIs fall back to typing or visible text.
 
 ```bash
 npm run lint

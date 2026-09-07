@@ -136,6 +136,157 @@ test("responsive stats show live XP and desktop-only gems", async ({ page }) => 
   await expect(desktopStats.getByText("20", { exact: true })).toHaveCount(0);
 });
 
+test("achievement badges show live progress and celebrate each unlock once", async ({ page }) => {
+  let firstSteps = 0;
+  const learner = () => ({
+    user_id: "demo",
+    name: "Vyoum",
+    hearts: 5,
+    xp: firstSteps ? 10 : 0,
+    streak: 0,
+    lessons_completed: firstSteps,
+    next_heart_at: null,
+    quests: [],
+    achievements: [
+      { name: "First steps", current: firstSteps, target: 1 },
+      { name: "XP explorer", current: 10, target: 100 },
+      { name: "On fire", current: 0, target: 3 },
+    ],
+  });
+  await page.route("**/api/v1/me", route => route.fulfill({ json: learner() }));
+
+  await page.goto("/profile");
+  const badges = page.locator('[data-testid="achievement-badges"]:visible');
+  await expect(badges).toBeVisible();
+  await expect(badges.getByLabel("First steps, 0 of 1")).toBeVisible();
+  await expect(badges.getByLabel("XP explorer, 10 of 100")).toBeVisible();
+
+  firstSteps = 1;
+  await page.evaluate(() => window.dispatchEvent(new Event("learner-updated")));
+  const modal = page.getByTestId("badge-unlock-modal");
+  await expect(modal).toBeVisible();
+  await expect(modal.getByRole("heading", { name: "First steps" })).toBeVisible();
+  await page.getByRole("button", { name: "Awesome" }).click();
+  await expect(modal).toHaveCount(0);
+  await expect(badges.getByLabel("First steps, unlocked")).toBeVisible();
+
+  await page.reload();
+  await expect(badges.getByLabel("First steps, unlocked")).toBeVisible();
+  await expect(modal).toHaveCount(0);
+});
+
+test("Legendary practice shows a timer, retries safely, awards XP, and returns to the path", async ({ page }) => {
+  const session = {
+    id: "11111111-1111-1111-1111-111111111111", position: 0, status: "active",
+    deadline: new Date(Date.now() + 60_000).toISOString(), xp_reward: 15,
+    lesson: { exercises: [
+      { id: "one", payload: { type: "multiple_choice", prompt: "Choose hello", options: ["hola", "adiós"] } },
+      { id: "two", payload: { type: "type_answer", prompt: "Type goodbye" } },
+    ] },
+  };
+  let calls = 0;
+  await page.route("**/api/v1/practice/legendary", route => route.fulfill({ json: session }));
+  await page.route("**/api/v1/practice/legendary/*/answers", async route => {
+    calls++;
+    if (calls === 1) { await route.abort("failed"); return; }
+    const body = route.request().postDataJSON();
+    const final = body.exercise_id === "two";
+    await route.fulfill({ json: { correct: true, timeout: false, completed: final, xp_earned: final ? 15 : 0, position: final ? 2 : 1 } });
+  });
+  await page.goto("/practice/legendary");
+  await page.getByRole("button", { name: "Start Legendary" }).click();
+  await expect(page.getByLabel(/seconds remaining/)).toBeVisible();
+  await page.getByRole("button", { name: "hola", exact: true }).click();
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Retry saving answer" })).toBeVisible();
+  await page.getByRole("button", { name: "Retry saving answer" }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByLabel("Legendary answer").fill("adiós");
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Legendary complete!" })).toBeVisible();
+  await expect(page.getByText("You earned 15 XP.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Back to the path" })).toHaveAttribute("href", "/");
+  expect(calls).toBe(3);
+});
+
+test("Legendary practice ends a run when its server deadline has passed", async ({ page }) => {
+  await page.route("**/api/v1/practice/legendary", route => route.fulfill({ json: {
+    id: "22222222-2222-2222-2222-222222222222", position: 0, status: "active",
+    deadline: new Date(Date.now() - 1_000).toISOString(), xp_reward: 15,
+    lesson: { exercises: [{ id: "one", payload: { type: "multiple_choice", prompt: "Choose hello", options: ["hola", "adiós"] } }] },
+  } }));
+  await page.route("**/api/v1/practice/legendary/*/answers", route => route.fulfill({ json: { correct: false, timeout: true, completed: false, xp_earned: 0, position: 0 } }));
+  await page.goto("/practice/legendary");
+  await page.getByRole("button", { name: "Start Legendary" }).click();
+  await expect(page.getByRole("heading", { name: "Time’s up" })).toBeVisible();
+  await expect(page.getByText(/did not earn XP/)).toBeVisible();
+});
+
+test("speaking practice uses recognition and falls back to typing", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("__disableSpeech")) {
+      Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: undefined });
+      Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: undefined });
+      return;
+    }
+    class FakeRecognition {
+      lang = ""; continuous = false; interimResults = false; maxAlternatives = 1;
+      onresult: ((event: unknown) => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      onend: (() => void) | null = null;
+      start() { window.setTimeout(() => { const result = Object.assign([{ transcript: "hola", confidence: 1 }], { isFinal: true }); this.onresult?.({ results: [result] }); }, 0); }
+      stop() { this.onend?.(); }
+      abort() { this.onend?.(); }
+    }
+    Object.defineProperty(window, "SpeechRecognition", { configurable: true, value: FakeRecognition });
+    Object.defineProperty(window, "webkitSpeechRecognition", { configurable: true, value: FakeRecognition });
+  });
+  await page.goto("/practice/speak");
+  await expect(page.getByText("Microphone ready")).toBeVisible();
+  await page.getByRole("button", { name: "Tap to speak" }).click();
+  await expect(page.getByText("✓ Sounded great!")).toBeVisible();
+
+  await page.evaluate(() => sessionStorage.setItem("__disableSpeech", "1"));
+  await page.reload();
+  await expect(page.getByText("Mic unavailable — typing enabled")).toBeVisible();
+  await page.getByLabel("Type the Spanish phrase").fill("hola");
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByText("✓ Sounded great!")).toBeVisible();
+});
+
+test("listening practice plays normal and slow audio and has a no-audio fallback", async ({ page }) => {
+  await page.addInitScript(() => {
+    if (sessionStorage.getItem("__disableAudio")) {
+      Object.defineProperty(window, "speechSynthesis", { configurable: true, value: undefined });
+      return;
+    }
+    class FakeUtterance {
+      lang = ""; rate = 1; onend: (() => void) | null = null; onerror: (() => void) | null = null;
+      constructor(public text: string) {}
+    }
+    const played: number[] = [];
+    Object.defineProperty(window, "__playedRates", { value: played });
+    Object.defineProperty(window, "SpeechSynthesisUtterance", { configurable: true, value: FakeUtterance });
+    Object.defineProperty(window, "speechSynthesis", { configurable: true, value: {
+      cancel() {}, getVoices() { return [{}]; }, onvoiceschanged: null,
+      speak(utterance: FakeUtterance) { played.push(utterance.rate); window.setTimeout(() => utterance.onend?.(), 0); },
+    } });
+  });
+  await page.goto("/practice/listen");
+  await page.getByRole("button", { name: "Play Spanish phrase", exact: true }).click();
+  await page.getByRole("button", { name: "Play Spanish phrase slowly" }).click();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __playedRates: number[] }).__playedRates)).toEqual([0.92, 0.65]);
+  await page.getByRole("button", { name: "hello", exact: true }).click();
+  await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByText("✓ You got it!")).toBeVisible();
+
+  await page.evaluate(() => sessionStorage.setItem("__disableAudio", "1"));
+  await page.reload();
+  await expect(page.getByText("Audio is unavailable in this browser.")).toBeVisible();
+  await expect(page.getByText("hola", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Play Spanish phrase", exact: true })).toBeDisabled();
+});
+
 for (const width of [390, 1440]) {
   test(`matching tiles handle selection, mistakes, and retry safely at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

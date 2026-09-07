@@ -4,7 +4,7 @@ import Link from "next/link";
 import { SuperBadge, TopStatsBar } from "@/components/layout/TopStatsBar";
 
 function toastComingSoon(label: string) {
-  // Lightweight placeholder — Super / speech features are out of assignment scope.
+  // Lightweight placeholder for the remaining optional collections.
   window.alert(`${label} — Coming soon`);
 }
 
@@ -14,12 +14,16 @@ export function PracticeScreen() {
       <TopStatsBar />
       <div className="px-4"><Link href="/" className="action-button">Practice a lesson</Link></div>
       <div className="px-4 pb-4 pt-2">
+        <Link href="/practice/legendary" className="legendary-card">
+          <span className="legendary-card-art" aria-hidden>🏆</span>
+          <span><strong>Legendary</strong><small>Beat the clock to earn 15 XP</small></span>
+          <b>START</b>
+        </Link>
         <h2 className="mb-3 text-2xl font-extrabold text-white">Today&apos;s Review</h2>
 
         {/* Featured Listen-Up card */}
-        <button
-          type="button"
-          onClick={() => toastComingSoon("Listen-Up")}
+        <Link
+          href="/practice/listen"
           className="relative mb-8 w-full overflow-hidden rounded-2xl p-5 text-left"
           style={{
             background: "linear-gradient(135deg, #0E4D4A 0%, #1A3A6B 45%, #4B2A8A 100%)",
@@ -36,7 +40,7 @@ export function PracticeScreen() {
           <div className="pointer-events-none absolute bottom-0 right-2">
             <ListenCharacter />
           </div>
-        </button>
+        </Link>
 
         <h2 className="mb-3 text-2xl font-extrabold text-white">Conversation</h2>
         <div className="mb-8 space-y-3">
@@ -44,14 +48,14 @@ export function PracticeScreen() {
             title="Speak"
             superBadge
             description="Improve your speaking skills with these phrases"
-            onClick={() => toastComingSoon("Speak")}
+            href="/practice/speak"
             art={<MicArt />}
           />
           <PracticeRow
             title="Listen"
             superBadge
             description="Boost your listening skills with an audio-only session"
-            onClick={() => toastComingSoon("Listen")}
+            href="/practice/listen"
             art={<HeadphonesArt />}
           />
         </div>
@@ -91,35 +95,52 @@ function PracticeRow({
   badge,
   art,
   onClick,
+  href,
 }: {
   title: string;
   description: string;
   superBadge?: boolean;
   badge?: string;
   art: React.ReactNode;
-  onClick: () => void;
+  onClick?: () => void;
+  href?: string;
 }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="relative flex w-full items-center gap-3 rounded-2xl border-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-4 py-4 text-left"
-    >
+  const className =
+    "relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-4 py-4 text-left transition hover:bg-[#1a2c32]";
+
+  const body = (
+    <>
+      {superBadge && (
+        <div className="absolute right-3 top-3">
+          <SuperBadge />
+        </div>
+      )}
       {badge && (
-        <span className="absolute -right-1 -top-2 rounded-full bg-[#FF4B4B] px-2 py-0.5 text-xs font-extrabold text-white">
+        <span className="absolute right-3 top-3 rounded-md bg-[#37464f] px-2 py-0.5 text-[10px] font-black text-white">
           {badge}
         </span>
       )}
-      <div className="min-w-0 flex-1 pr-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-lg font-extrabold text-white">{title}</span>
-          {superBadge && <SuperBadge />}
-        </div>
+      <div className="min-w-0 flex-1 pr-16">
+        <h3 className="text-lg font-extrabold text-white">{title}</h3>
         <p className="mt-1 text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
           {description}
         </p>
       </div>
-      <div className="shrink-0">{art}</div>
+      <div className="pointer-events-none absolute bottom-0 right-2 opacity-90">{art}</div>
+    </>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className={className}>
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className={className}>
+      {body}
     </button>
   );
 }

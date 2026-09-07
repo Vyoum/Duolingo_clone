@@ -159,7 +159,12 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
       }
       pending.current = null; setHasPending(false); sessionStorage.removeItem(`pending:${attempt.id}`);
       window.dispatchEvent(new Event("learner-updated"));
-      if (result.completed) sessionStorage.removeItem(storageKey);
+      if (result.completed) {
+        sessionStorage.removeItem(storageKey);
+        // Rewards are eventually consistent — refresh so badge unlocks can present.
+        window.setTimeout(() => window.dispatchEvent(new Event("learner-updated")), 1500);
+        window.setTimeout(() => window.dispatchEvent(new Event("learner-updated")), 4000);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to save answer");
       if (e instanceof ApiError && e.status === 403) setModal("hearts");

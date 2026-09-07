@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import threading
+import time
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
@@ -35,6 +36,8 @@ def initialize():
         db.execute('CREATE TABLE IF NOT EXISTS completions (user_id TEXT NOT NULL, lesson_id TEXT NOT NULL, PRIMARY KEY(user_id,lesson_id))')
         db.execute('CREATE TABLE IF NOT EXISTS outbox (id TEXT PRIMARY KEY, payload TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 0)')
         db.execute('CREATE TABLE IF NOT EXISTS matched_pairs (attempt_id TEXT NOT NULL REFERENCES attempts(id), exercise_id TEXT NOT NULL, left_word TEXT NOT NULL, right_word TEXT NOT NULL, PRIMARY KEY(attempt_id,exercise_id,left_word), UNIQUE(attempt_id,exercise_id,right_word))')
+        db.execute('CREATE TABLE IF NOT EXISTS practice_sessions (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, start_key TEXT NOT NULL, lesson TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT "active", deadline REAL NOT NULL, UNIQUE(user_id,start_key))')
+        db.execute('CREATE TABLE IF NOT EXISTS practice_answers (session_id TEXT NOT NULL REFERENCES practice_sessions(id), key TEXT NOT NULL, body TEXT NOT NULL, response TEXT NOT NULL, PRIMARY KEY(session_id,key))')
         db.execute('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
     if SEED_DEMO_LEARNER:
         seed_demo_learner()
@@ -252,4 +255,105 @@ def submit(attempt_id: UUID, body: Answer, x_user_id: UUID = Header(), idempoten
         if body.match_pair:
             result.update(exercise_complete=exercise_complete, matched_pairs=pairs)
         db.execute('INSERT INTO answers VALUES(?,?,?,?)', (aid, idempotency_key, encoded, json.dumps(result)))
+        return result
+
+
+class PracticeStart(BaseModel):
+    duration_seconds: int = 90
+
+
+class PracticeAnswer(BaseModel):
+    exercise_id: UUID
+    answer: str | int | list[str] | dict[str, str]
+
+
+def practice_view(row):
+    lesson = public_lesson(json.loads(row['lesson']))
+    return {
+        'id': row['id'], 'position': row['position'], 'status': row['status'],
+        'deadline': datetime.fromtimestamp(row['deadline'], timezone.utc).isoformat(),
+        'lesson': lesson, 'xp_reward': 15,
+    }
+
+
+def practice_snapshot(user):
+    """Take a deterministic, server-owned sample of seeded exercises."""
+    course = curriculum()
+    ids = [lesson['id'] for unit in course['units'] for skill in unit['skills'] for lesson in skill['lessons']]
+    exercises = []
+    for lesson_id in ids:
+        lesson = request(CONTENT_URL, '/api/v1/lessons/' + lesson_id)
+        # Matching is intentionally omitted here: its per-pair protocol belongs
+        # to the lesson player, while Legendary grades one exercise submission.
+        exercises.extend(ex for ex in lesson['exercises'] if ex['payload']['type'] != 'match')
+        if len(exercises) >= 5:
+            break
+    if not exercises:
+        raise HTTPException(503, 'No practice exercises are available')
+    return {'id': 'legendary-practice', 'exercises': exercises[:5]}
+
+
+@app.post('/api/v1/practice/legendary')
+def start_legendary(body: PracticeStart, x_user_id: UUID = Header(), idempotency_key: str = Header(min_length=1, max_length=128)):
+    if not 15 <= body.duration_seconds <= 600:
+        raise HTTPException(422, 'Practice duration must be between 15 seconds and 10 minutes')
+    user = str(x_user_id)
+    with transaction(DB) as db:
+        old = db.execute('SELECT * FROM practice_sessions WHERE user_id=? AND start_key=?', (user, idempotency_key)).fetchone()
+        if old:
+            return practice_view(old)
+    snapshot = practice_snapshot(user)
+    with transaction(DB) as db:
+        old = db.execute('SELECT * FROM practice_sessions WHERE user_id=? AND start_key=?', (user, idempotency_key)).fetchone()
+        if old:
+            return practice_view(old)
+        session_id = str(uuid4())
+        db.execute('INSERT INTO practice_sessions(id,user_id,start_key,lesson,deadline) VALUES(?,?,?,?,?)', (session_id, user, idempotency_key, json.dumps(snapshot), time.time() + body.duration_seconds))
+        return practice_view(db.execute('SELECT * FROM practice_sessions WHERE id=?', (session_id,)).fetchone())
+
+
+@app.get('/api/v1/practice/legendary/{session_id}')
+def get_legendary(session_id: UUID, x_user_id: UUID = Header()):
+    with transaction(DB) as db:
+        row = db.execute('SELECT * FROM practice_sessions WHERE id=? AND user_id=?', (str(session_id), str(x_user_id))).fetchone()
+        if not row:
+            raise HTTPException(404, 'Practice session not found')
+        return practice_view(row)
+
+
+@app.post('/api/v1/practice/legendary/{session_id}/answers')
+def submit_legendary(session_id: UUID, body: PracticeAnswer, x_user_id: UUID = Header(), idempotency_key: str = Header(min_length=1, max_length=128)):
+    user, sid = str(x_user_id), str(session_id)
+    encoded = json.dumps(body.model_dump(mode='json'), sort_keys=True)
+    with transaction(DB) as db:
+        row = db.execute('SELECT * FROM practice_sessions WHERE id=? AND user_id=?', (sid, user)).fetchone()
+        if not row:
+            raise HTTPException(404, 'Practice session not found')
+        old = db.execute('SELECT * FROM practice_answers WHERE session_id=? AND key=?', (sid, idempotency_key)).fetchone()
+        if old:
+            if old['body'] != encoded:
+                raise HTTPException(409, 'Idempotency key reused with a different answer')
+            return json.loads(old['response'])
+        if row['status'] != 'active':
+            raise HTTPException(409, 'Practice session is no longer active')
+        if time.time() >= row['deadline']:
+            result = {'correct': False, 'timeout': True, 'completed': False, 'xp_earned': 0, 'position': row['position']}
+            db.execute('UPDATE practice_sessions SET status="timed_out" WHERE id=?', (sid,))
+            db.execute('INSERT INTO practice_answers VALUES(?,?,?,?)', (sid, idempotency_key, encoded, json.dumps(result)))
+            return result
+        lesson = json.loads(row['lesson'])
+        exercise = lesson['exercises'][row['position']]
+        if exercise['id'] != str(body.exercise_id):
+            raise HTTPException(409, 'Answer the current practice exercise first')
+        correct, expected = grade(exercise['payload'], body.answer)
+        position = row['position'] + int(correct)
+        completed = position == len(lesson['exercises'])
+        xp = 15 if completed else 0
+        if completed:
+            # The reward endpoint keys on this session ID, so transport retries
+            # cannot award XP twice.
+            request(GAME_URL, '/internal/practice-rewards', method='POST', json={'user_id': user, 'session_id': sid, 'xp': xp})
+        db.execute('UPDATE practice_sessions SET position=?, status=? WHERE id=?', (position, 'completed' if completed else 'active', sid))
+        result = {'correct': correct, 'expected': expected, 'timeout': False, 'completed': completed, 'xp_earned': xp, 'position': position}
+        db.execute('INSERT INTO practice_answers VALUES(?,?,?,?)', (sid, idempotency_key, encoded, json.dumps(result)))
         return result

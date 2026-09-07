@@ -34,9 +34,9 @@ async def proxy(path: str, req: Request):
     # caller-provided user header or expose the internal heart mutation API.
     if req.method == 'GET' and path in ('me', 'leaderboard'):
         base = GAME_URL
-    elif req.method == 'GET' and (path == 'path' or re.fullmatch(r'attempts/[0-9a-f-]{36}', path)):
+    elif req.method == 'GET' and (path == 'path' or re.fullmatch(r'attempts/[0-9a-f-]{36}', path) or re.fullmatch(r'practice/legendary/[0-9a-f-]{36}', path)):
         base = PROGRESS_URL
-    elif req.method == 'POST' and (path == 'attempts' or re.fullmatch(r'attempts/[0-9a-f-]{36}/answers', path)):
+    elif req.method == 'POST' and (path == 'attempts' or path == 'practice/legendary' or re.fullmatch(r'attempts/[0-9a-f-]{36}/answers', path) or re.fullmatch(r'practice/legendary/[0-9a-f-]{36}/answers', path)):
         base = PROGRESS_URL
     elif req.method == 'GET' and (path == 'courses' or re.fullmatch(r'courses/[0-9a-f-]{36}', path) or re.fullmatch(r'skills/[0-9a-f-]{36}/lessons', path)):
         base = CONTENT_URL

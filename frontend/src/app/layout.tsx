@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
+import { AppProviders } from "@/components/layout/AppProviders";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -21,7 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${nunito.variable} h-full`}>
       <body className="min-h-full bg-[var(--duo-bg)] font-sans text-[var(--duo-text)] antialiased">
-        {children}
+        <AppProviders>{children}</AppProviders>
       </body>
     </html>
   );

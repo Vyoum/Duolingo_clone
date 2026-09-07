@@ -27,7 +27,7 @@ export function RightRail() {
       : "learn";
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[368px] shrink-0 flex-col gap-4 overflow-y-auto border-l-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-5 py-5">
+    <aside className="sticky top-0 flex h-screen w-[368px] shrink-0 flex-col gap-4 overflow-y-auto bg-[var(--duo-bg)] px-5 py-5">
       <StatsRow learner={data} />
 
       {variant === "learn" && (
