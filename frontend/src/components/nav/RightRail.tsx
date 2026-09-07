@@ -29,7 +29,7 @@ export function RightRail() {
       : "learn";
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[368px] shrink-0 flex-col gap-4 overflow-y-auto bg-[var(--duo-bg)] px-5 py-5">
+    <aside className="sticky top-0 flex h-screen w-[420px] shrink-0 flex-col gap-5 overflow-y-auto bg-[var(--duo-bg)] px-6 py-6">
       <StatsRow learner={data} />
 
       {variant === "learn" && (
@@ -61,7 +61,7 @@ export function RightRail() {
 function StatsRow({ learner }: { learner: Learner | null | undefined }) {
   return (
     <div
-      className="flex items-center justify-between gap-2 px-1 text-[15px] font-extrabold"
+      className="flex items-center justify-between gap-2 px-1 text-[17px] font-extrabold"
       aria-label="Desktop learner statistics"
     >
       <span
@@ -86,19 +86,19 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
 
 function SuperCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
+    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
       <div className="mb-2 flex items-start justify-between gap-2">
         <SuperBadge />
         <HoloOwlMini />
       </div>
-      <h3 className="text-lg font-extrabold text-white">Try Super for free</h3>
-      <p className="mt-1 text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+      <h3 className="text-xl font-extrabold text-white">Try Super for free</h3>
+      <p className="mt-2 text-base font-semibold leading-snug text-[var(--duo-text-muted)]">
         No ads, personalized practice, and unlimited Legendary!
       </p>
       <button
         type="button"
         onClick={() => showToast("Super — Coming soon")}
-        className="duo-btn-blue mt-4 w-full py-3 text-sm"
+        className="duo-btn-blue mt-5 w-full py-4 text-[15px]"
       >
         TRY 1 WEEK FREE
       </button>
@@ -110,31 +110,31 @@ function LeagueCard({ learner }: { learner: Learner | null | undefined }) {
   const xp = learner?.xp ?? 0;
   const joined = (learner?.lessons_completed ?? 0) > 0 || xp > 0;
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-extrabold text-white">Silver League</h3>
+    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-extrabold text-white">Silver League</h3>
         <Link href="/leaderboard" className="text-sm font-extrabold text-[var(--duo-blue)]">
           VIEW LEAGUE
         </Link>
       </div>
       {joined ? (
-        <div className="flex items-center gap-3">
-          <span className="text-3xl" aria-hidden>
+        <div className="flex items-center gap-4">
+          <span className="text-4xl" aria-hidden>
             🥈
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-extrabold text-white">You&apos;re in the league!</p>
-            <p className="text-sm font-semibold text-[var(--duo-text-muted)]">
+            <p className="text-base font-extrabold text-white">You&apos;re in the league!</p>
+            <p className="text-base font-semibold text-[var(--duo-text-muted)]">
               <AnimatedNumber value={xp} /> XP this week
             </p>
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3">
-          <span className="text-4xl" aria-hidden>
+        <div className="flex items-center gap-4">
+          <span className="text-5xl" aria-hidden>
             😴
           </span>
-          <p className="text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+          <p className="text-base font-semibold leading-snug text-[var(--duo-text-muted)]">
             Complete a lesson to join this week&apos;s leaderboard
           </p>
         </div>
@@ -150,30 +150,30 @@ function QuestsCard({ learner }: { learner: Learner | null | undefined }) {
   const label = quest?.name ?? "Earn 10 XP";
   const pct = Math.min(100, Math.round((current / Math.max(target, 1)) * 100));
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <h3 className="font-extrabold text-white">Daily Quests</h3>
+    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-lg font-extrabold text-white">Daily Quests</h3>
         <Link href="/quests" className="text-sm font-extrabold text-[var(--duo-blue)]">
           VIEW ALL
         </Link>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-2xl" aria-hidden>
+      <div className="flex items-center gap-4">
+        <span className="text-3xl" aria-hidden>
           ⚡
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold text-white">{label}</p>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-[#37464F]">
+          <p className="text-base font-extrabold text-white">{label}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <div className="relative h-5 flex-1 overflow-hidden rounded-full bg-[#37464F]">
               <div
                 className="absolute inset-y-0 left-0 rounded-full bg-[var(--duo-yellow)]"
                 style={{ width: `${pct}%` }}
               />
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold text-white">
+              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-extrabold text-white">
                 {current} / {target}
               </span>
             </div>
-            <span aria-hidden>🧰</span>
+            <span className="text-xl" aria-hidden>🧰</span>
           </div>
         </div>
       </div>
@@ -183,16 +183,16 @@ function QuestsCard({ learner }: { learner: Learner | null | undefined }) {
 
 function AdCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
+    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
       <p className="text-xs font-bold uppercase tracking-wide text-[var(--duo-text-muted)]">
         Advertisement
       </p>
-      <p className="mt-2 text-sm font-extrabold text-white">
+      <p className="mt-3 text-base font-extrabold text-white">
         Get Photoshop for ₹733.96/month
       </p>
       <button
         type="button"
-        className="mt-3 text-sm font-extrabold text-[var(--duo-blue)]"
+        className="mt-4 text-base font-extrabold text-[var(--duo-blue)]"
         onClick={() => showToast("Advertisement link — Coming soon")}
       >
         Learn more
@@ -203,24 +203,24 @@ function AdCard() {
 
 function MonthlyBadgesCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
-      <h3 className="mb-4 font-extrabold text-white">Monthly Badges</h3>
-      <div className="space-y-4">
-        <div className="flex gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#37464F] text-xl">
+    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
+      <h3 className="mb-5 text-lg font-extrabold text-white">Monthly Badges</h3>
+      <div className="space-y-5">
+        <div className="flex gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#37464F] text-2xl">
             🏅
           </div>
-          <p className="text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+          <p className="text-base font-semibold leading-snug text-[var(--duo-text-muted)]">
             Complete 20 quests to earn this month&apos;s badge
           </p>
         </div>
-        <div className="flex gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#37464F] text-xl">
+        <div className="flex gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#37464F] text-2xl">
             🎧
           </div>
           <div>
-            <p className="text-sm font-extrabold text-white">Zari&apos;s Movie Binge</p>
-            <p className="text-sm font-semibold text-[var(--duo-text-muted)]">June 2025</p>
+            <p className="text-base font-extrabold text-white">Zari&apos;s Movie Binge</p>
+            <p className="text-base font-semibold text-[var(--duo-text-muted)]">June 2025</p>
           </div>
         </div>
       </div>
@@ -231,24 +231,24 @@ function MonthlyBadgesCard() {
 function StatusCard() {
   const emojis = ["😎", "🎉", "💪", "👀", "🍿", "🇩🇪", "🔥", "💚", "🎯", "📚", "✨", "🦉"];
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="font-extrabold text-white">Set your status</h3>
+    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
+      <div className="mb-5 flex items-center justify-between">
+        <h3 className="text-lg font-extrabold text-white">Set your status</h3>
         <button type="button" className="text-sm font-extrabold text-[var(--duo-blue)]">
           CLEAR
         </button>
       </div>
-      <div className="mb-4 flex justify-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#37464F] text-3xl">
+      <div className="mb-5 flex justify-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#37464F] text-4xl">
           🧑
         </div>
       </div>
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-6 gap-2.5">
         {emojis.map((e) => (
           <button
             key={e}
             type="button"
-            className="flex h-10 items-center justify-center rounded-xl border-2 border-[var(--duo-border)] text-lg hover:border-[var(--duo-blue)]"
+            className="flex h-12 items-center justify-center rounded-xl border-2 border-[var(--duo-border)] text-xl hover:border-[var(--duo-blue)]"
           >
             {e}
           </button>
