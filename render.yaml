@@ -1,0 +1,100 @@
+# Optional hosted backend. Creates paid persistent services; review plans before applying.
+services:
+  - type: keyvalue
+    name: duo-redis
+    plan: starter
+    region: frankfurt
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
+  - type: pserv
+    name: duo-content
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: backend/services/content-service/Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: duo-content-db
+          property: connectionString
+      - key: RUN_SEED_ON_STARTUP
+        value: 'true'
+  - type: pserv
+    name: duo-gamification
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: backend/services/gamification-service/Dockerfile
+    disk:
+      name: gamification-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: duo-redis
+          property: connectionString
+  - type: pserv
+    name: duo-progress
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: backend/services/progress-service/Dockerfile
+    disk:
+      name: progress-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: CONTENT_URL
+        fromService:
+          type: pserv
+          name: duo-content
+          property: hostport
+      - key: GAME_URL
+        fromService:
+          type: pserv
+          name: duo-gamification
+          property: hostport
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: duo-redis
+          property: connectionString
+  - type: web
+    name: duo-gateway
+    runtime: docker
+    plan: starter
+    region: frankfurt
+    dockerfilePath: backend/services/gateway/Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: CONTENT_URL
+        fromService:
+          type: pserv
+          name: duo-content
+          property: hostport
+      - key: GAME_URL
+        fromService:
+          type: pserv
+          name: duo-gamification
+          property: hostport
+      - key: PROGRESS_URL
+        fromService:
+          type: pserv
+          name: duo-progress
+          property: hostport
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: duo-redis
+          property: connectionString
+      - key: MOCK_USER_ID
+        value: aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa
+
+databases:
+  - name: duo-content-db
+    databaseName: content_db
+    plan: basic-256mb
+    region: frankfurt
+    ipAllowList: []

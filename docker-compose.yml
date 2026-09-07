@@ -1,0 +1,94 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: content_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: local-demo-password
+    volumes:
+      - content-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U postgres -d content_db']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  redis:
+    image: redis:7-alpine
+    command: [redis-server, --appendonly, 'yes', --appendfsync, always]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  content:
+    build:
+      context: .
+      dockerfile: backend/services/content-service/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:local-demo-password@postgres:5432/content_db
+      RUN_SEED_ON_STARTUP: 'true'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  progress:
+    build:
+      context: .
+      dockerfile: backend/services/progress-service/Dockerfile
+    environment:
+      CONTENT_URL: http://content:8001
+      GAME_URL: http://gamification:8000
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - progress-data:/data
+    depends_on:
+      content:
+        condition: service_healthy
+      gamification:
+        condition: service_started
+  gamification:
+    build:
+      context: .
+      dockerfile: backend/services/gamification-service/Dockerfile
+    environment:
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - gamification-data:/data
+    depends_on:
+      redis:
+        condition: service_healthy
+  gateway:
+    build:
+      context: .
+      dockerfile: backend/services/gateway/Dockerfile
+    environment:
+      CONTENT_URL: http://content:8001
+      GAME_URL: http://gamification:8000
+      PROGRESS_URL: http://progress:8000
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - '8000:8000'
+    depends_on:
+      - progress
+      - gamification
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      GATEWAY_URL: http://gateway:8000
+    ports:
+      - '3000:3000'
+    depends_on:
+      - gateway
+volumes:
+  content-data:
+  progress-data:
+  gamification-data:
+  redis-data:
