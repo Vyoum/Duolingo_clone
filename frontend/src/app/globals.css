@@ -18,6 +18,7 @@
   --duo-heart: #ff4b4b;
   --duo-gem: #1cb0f6;
   --duo-avatar-bg: #e5e5e5;
+  --duo-path-line: #3d5260;
   --duo-nav-height: 72px;
   --background: var(--duo-bg);
   --foreground: var(--duo-text);
@@ -86,26 +87,31 @@ button:disabled { cursor: not-allowed; }
 .path-intro > span, .exercise-eyebrow { font-size: 11px; font-weight: 900; letter-spacing: 1.8px; color: var(--duo-blue); text-transform: uppercase; }
 .path-intro h1 { font-size: 27px; font-weight: 900; line-height: 1.22; margin: 12px 0; }
 .path-intro p { color: var(--duo-text-muted); font-size: 14px; }
-.unit-banner { margin: 0 16px; border-radius: 18px; padding: 20px; display: flex; justify-content: space-between; align-items: center; background: #136b8b; border-bottom: 4px solid #0d4e68; }
-.unit-banner p { font-size: 11px; letter-spacing: 1px; font-weight: 900; color: #b9e9ff; }
-.unit-banner h2 { font-size: 24px; font-weight: 900; margin-top: 3px; }
-.unit-banner > span { font-size: 38px; color: #c9f3ff; }
-.unit-1 { background: #655099; border-color: #45386a; }
-.path-track { padding: 46px 0 24px; position: relative; }
-.path-track::before { content: ""; position: absolute; left: calc(50% - 2px); top: 50px; bottom: 90px; border-left: 4px dotted #293c45; }
-.skill-group { display: flex; flex-direction: column; align-items: center; }
-.path-stop { position: relative; text-align: center; margin-bottom: 40px; width: 136px; }
-.node-ring { width: 94px; height: 94px; margin: auto; padding: 6px; border-radius: 50%; }
-.path-node { width: 82px; height: 82px; display: flex; justify-content: center; align-items: center; border: 6px solid var(--duo-bg); border-radius: 50%; font-size: 36px; font-weight: 900; }
-.path-node.ready { background: var(--duo-green); color: white; box-shadow: inset 0 -7px #43a000; }
-.path-node.done { background: var(--duo-green); color: white; box-shadow: inset 0 -7px #43a000; }
-.path-node.done .path-check { font-size: 40px; font-weight: 900; line-height: 1; transform: translateY(-1px); }
-.path-node.locked { background: #2d4049; color: #6d818c; font-size: 24px; }
-.path-stop > p { font-size: 15px; font-weight: 900; margin-top: 10px; }
-.path-stop small { font-size: 10px; color: #91a6b0; font-weight: 800; letter-spacing: 1px; }
-.start-bubble { position: absolute; top: -31px; left: 32px; border: 2px solid var(--duo-border); background: var(--duo-bg); color: var(--duo-green); padding: 4px 12px; font-size: 12px; font-weight: 900; border-radius: 10px; }
-.path-finish { text-align: center; padding: 0 20px 30px; color: var(--duo-text-muted); font-size: 13px; }
-.path-finish span { font-size: 44px; display: block; margin-bottom: 12px; }
+.learning-path { padding-bottom: 16px; }
+.unit-banner { margin: 12px 16px 0; border-radius: 18px; padding: 16px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #136b8b; border-bottom: 4px solid #0d4e68; }
+.unit-banner > div > p:first-child { font-size: 11px; letter-spacing: 1px; font-weight: 900; color: #b9e9ff; margin: 0; }
+.unit-banner h2 { font-size: 22px; font-weight: 900; margin: 4px 0 0; line-height: 1.2; }
+.unit-subtitle { margin: 6px 0 0; font-size: 13px; font-weight: 700; letter-spacing: 0; color: #d7f3ff; opacity: 0.92; line-height: 1.35; max-width: 28ch; }
+.unit-banner > span { font-size: 34px; color: #c9f3ff; flex-shrink: 0; }
+.unit-1 { background: #655099; border-bottom-color: #45386a; }
+.unit-1 > div > p:first-child { color: #dccfff; }
+.unit-1 .unit-subtitle { color: #ebe2ff; }
+.unit-1 > span { color: #ebe2ff; }
+.path-track { padding: 20px 0 8px; position: relative; display: flex; flex-direction: column; align-items: center; }
+.path-stop-wrap { display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 320px; }
+.path-stop { position: relative; text-align: center; width: 120px; margin: 0; }
+.node-ring { width: 76px; height: 76px; margin: auto; padding: 5px; border-radius: 50%; }
+.path-node { width: 66px; height: 66px; min-width: 44px; min-height: 44px; display: flex; justify-content: center; align-items: center; border: 5px solid var(--duo-bg); border-radius: 50%; font-size: 28px; font-weight: 900; }
+.path-node.ready { background: var(--duo-green); color: white; box-shadow: inset 0 -6px #43a000; }
+.path-node.done { background: var(--duo-green); color: white; box-shadow: inset 0 -6px #43a000; }
+.path-node.done .path-check { font-size: 32px; font-weight: 900; line-height: 1; transform: translateY(-1px); }
+.path-node.locked { background: #2d4049; color: #6d818c; font-size: 20px; }
+.path-stop > p { font-size: 13px; font-weight: 900; margin: 6px 0 0; line-height: 1.25; }
+.path-stop small { display: block; font-size: 10px; color: #91a6b0; font-weight: 800; letter-spacing: 1px; margin-top: 2px; }
+.path-connector { display: block; margin: -2px auto -6px; overflow: visible; pointer-events: none; flex-shrink: 0; }
+.start-bubble { position: absolute; top: -28px; left: 0; right: 0; margin-inline: auto; width: max-content; border: 2px solid var(--duo-border); background: var(--duo-bg); color: var(--duo-green); padding: 3px 10px; font-size: 11px; font-weight: 900; border-radius: 10px; white-space: nowrap; z-index: 1; }
+.path-finish { text-align: center; padding: 12px 20px 28px; color: var(--duo-text-muted); font-size: 13px; }
+.path-finish span { font-size: 40px; display: block; margin-bottom: 8px; }
 .action-button { display: block; text-align: center; width: 100%; padding: 15px 24px; margin-top: 18px; border-radius: 14px; background: var(--duo-green); border-bottom: 4px solid #409800; color: #153600; text-transform: uppercase; letter-spacing: .8px; font-size: 14px; font-weight: 900; }
 .action-button:active { transform: translateY(2px); }
 .action-button:disabled { background: var(--duo-border); border-color: #283841; color: #8ba0aa; }
