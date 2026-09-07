@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type Attempt, type Feedback, type Learner } from "@/lib/api";
+import { MatchExercise, type PairResult } from "./MatchExercise";
 
 type Answer = string | number | string[] | Record<string, string>;
 
@@ -9,6 +10,47 @@ function Modal({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => { ref.current?.showModal(); }, []);
   return <dialog ref={ref} className="lesson-modal" onCancel={e => e.preventDefault()}>{children}</dialog>;
+}
+
+function XpRollup({ value, saved }: { value: number; saved: boolean }) {
+  const [display, setDisplay] = useState(0);
+
+  useEffect(() => {
+    let frame = 0;
+    if (saved || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      frame = window.requestAnimationFrame(() => setDisplay(value));
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    let startedAt: number | undefined;
+    const tick = (now: number) => {
+      startedAt ??= now;
+      const progress = Math.min((now - startedAt) / 900, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(value * eased));
+      if (progress < 1) frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [saved, value]);
+
+  return (
+    <span
+      className="xp-rollup"
+      data-testid="xp-rollup"
+      aria-label={saved ? "XP saved" : `${value} XP earned`}
+    >
+      <span aria-hidden>⚡ {saved ? "XP saved" : `${display} XP`}</span>
+    </span>
+  );
+}
+
+function Celebration() {
+  return (
+    <div className="lesson-celebration" data-testid="lesson-celebration" aria-hidden>
+      {Array.from({ length: 12 }, (_, index) => <span key={index} />)}
+    </div>
+  );
 }
 
 export function LessonPlayer({ lessonId }: { lessonId: string }) {
@@ -20,9 +62,11 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [hasPending, setHasPending] = useState(false);
+  const [pairResult, setPairResult] = useState<PairResult | null>(null);
+  const [heartLoss, setHeartLoss] = useState(0);
   const [modal, setModal] = useState<"complete" | "hearts" | "exit" | null>(null);
   const [retry, setRetry] = useState(0);
-  const pending = useRef<{ key: string; body: { exercise_id: string; answer: Answer } } | null>(null);
+  const pending = useRef<{ key: string; body: { exercise_id: string; answer: Answer; match_pair?: boolean } } | null>(null);
   const submitting = useRef(false);
   const storageKey = `lesson-start:${lessonId}`;
 
@@ -56,21 +100,31 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
 
   const exercise = attempt?.lesson.exercises[attempt.position];
   const payload = exercise?.payload;
-  const mapping = typeof answer === "object" && !Array.isArray(answer) ? answer : {};
-  const ready = payload?.type === "translate" ? tokens.length > 0 : payload?.type === "match" ? payload.left?.every(left => mapping[left]) : typeof answer === "number" || (typeof answer === "string" && answer.trim().length > 0);
+  const ready = payload?.type === "translate" ? tokens.length > 0 : payload?.type === "match" ? false : typeof answer === "number" || (typeof answer === "string" && answer.trim().length > 0);
 
-  async function check() {
+  async function check(pair?: Record<string, string>) {
     if (!attempt || !exercise || submitting.current) return;
     submitting.current = true; setBusy(true); setError("");
     if (!pending.current) {
-      const submittedAnswer = payload?.type === "translate" ? tokens.map(i => payload.tokens![i]) : answer;
-      pending.current = { key: crypto.randomUUID(), body: { exercise_id: exercise.id, answer: submittedAnswer } };
+      const submittedAnswer = pair ?? (payload?.type === "translate" ? tokens.map(i => payload.tokens![i]) : answer);
+      pending.current = { key: crypto.randomUUID(), body: { exercise_id: exercise.id, answer: submittedAnswer, ...(pair ? { match_pair: true } : {}) } };
       sessionStorage.setItem(`pending:${attempt.id}`, JSON.stringify(pending.current));
       setHasPending(true);
     }
     try {
-      const result = await api<Feedback>(`attempts/${attempt.id}/answers`, pending.current.body, pending.current.key);
-      setFeedback(result); setHearts(result.hearts);
+      const submitted = pending.current;
+      const result = await api<Feedback>(`attempts/${attempt.id}/answers`, submitted.body, submitted.key);
+      if (hearts !== null && result.hearts < hearts) setHeartLoss(n => n + 1);
+      setHearts(result.hearts);
+      if (submitted.body.match_pair) {
+        const [left, right] = Object.entries(submitted.body.answer as Record<string, string>)[0];
+        setPairResult({ key: submitted.key, left, right, correct: result.correct });
+        setAttempt(current => current ? { ...current, matched_pairs: result.matched_pairs ?? current.matched_pairs } : current);
+        if (result.exercise_complete) setFeedback(result);
+        if (result.out_of_hearts) setModal("hearts");
+      } else {
+        setFeedback(result);
+      }
       pending.current = null; setHasPending(false); sessionStorage.removeItem(`pending:${attempt.id}`);
       window.dispatchEvent(new Event("learner-updated"));
       if (result.completed) sessionStorage.removeItem(storageKey);
@@ -83,28 +137,28 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     if (!feedback || !attempt) return;
     if (feedback.completed) { setModal("complete"); return; }
     if (feedback.out_of_hearts) { setModal("hearts"); return; }
-    setAttempt({ ...attempt, position: feedback.position }); setFeedback(null); setAnswer(""); setTokens([]);
+    setAttempt({ ...attempt, position: feedback.position, matched_pairs: {} }); setFeedback(null); setPairResult(null); setAnswer(""); setTokens([]);
   }
   return <main className="lesson-player">
-    <header className="lesson-header"><button className="exit-button" onClick={() => setModal("exit")} aria-label="Exit lesson">✕</button><progress aria-label="Lesson progress" max={attempt?.lesson.exercises.length || 1} value={feedback?.position ?? attempt?.position ?? 0} /><span className="heart-count" aria-label={`${hearts ?? "Loading"} hearts`}>♥ {hearts ?? "…"}</span></header>
+    <header className="lesson-header"><button className="exit-button" onClick={() => setModal("exit")} aria-label="Exit lesson">✕</button><progress aria-label="Lesson progress" max={attempt?.lesson.exercises.length || 1} value={feedback?.position ?? attempt?.position ?? 0} /><span key={heartLoss} className={`heart-count ${heartLoss ? "heart-shake" : ""}`} aria-label={`${hearts ?? "Loading"} hearts`}>♥ {hearts ?? "…"}</span></header>
     {!attempt && !error && <p role="status" className="learning-message">Getting your lesson ready…</p>}
-    {payload && <section className="exercise-area">
-      <p className="exercise-eyebrow">{payload.type.replaceAll("_", " ")} · {attempt!.position + 1} OF {attempt!.lesson.exercises.length}</p>
-      <h1>{payload.prompt}</h1>
-      <div className="exercise-guide"><span aria-hidden="true">🦉</span><p>{payload.sentence || "Take your time. You’ve got this!"}</p></div>
+    {payload && <section className={`exercise-area ${payload.type === "match" ? "exercise-area-matching" : ""}`}>
+      {payload.type !== "match" && <p className="exercise-eyebrow">{payload.type.replaceAll("_", " ")} · {attempt!.position + 1} OF {attempt!.lesson.exercises.length}</p>}
+      <h1>{payload.type === "match" ? "Tap the matching pairs" : payload.prompt}</h1>
+      {payload.type !== "match" && <div className="exercise-guide"><span aria-hidden="true">🦉</span><p>{payload.sentence || "Take your time. You’ve got this!"}</p></div>}
       <fieldset disabled={busy || !!feedback || hasPending} className="exercise-inputs"><legend className="sr-only">Your answer</legend>
         {(payload.type === "multiple_choice" || (payload.type === "fill_blank" && payload.options)) && <div className="answer-options">{payload.options!.map((option, i) => <button key={i} className={`answer-option ${answer === (payload.type === "multiple_choice" ? i : option) ? "selected" : ""}`} aria-pressed={answer === (payload.type === "multiple_choice" ? i : option)} onClick={() => setAnswer(payload.type === "multiple_choice" ? i : option)}><span>{i + 1}</span>{option}</button>)}</div>}
         {(payload.type === "type_answer" || (payload.type === "fill_blank" && !payload.options)) && <textarea autoFocus aria-label="Type your answer in Spanish" placeholder="Type in Spanish…" value={typeof answer === "string" ? answer : ""} onChange={e => setAnswer(e.target.value)} autoComplete="off" spellCheck={false} />}
         {payload.type === "translate" && <><div className="token-answer" aria-label="Your translation">{tokens.length === 0 && <span>Tap words to build your answer</span>}{tokens.map((token, i) => <button key={i} className="word-token selected" onClick={() => setTokens(tokens.filter((_, position) => position !== i))}>{payload.tokens![token]}</button>)}</div><div className="token-bank">{payload.tokens!.map((token, i) => <button key={i} className="word-token" disabled={tokens.includes(i)} onClick={() => setTokens([...tokens, i])}>{token}</button>)}</div></>}
-        {payload.type === "match" && <div className="match-pairs">{payload.left!.map(left => <label key={left}><span>{left}</span><select aria-label={`Spanish match for ${left}`} value={mapping[left] || ""} onChange={e => setAnswer({ ...mapping, [left]: e.target.value })}><option value="">Choose a match</option>{payload.right!.map(right => <option key={right} value={right}>{right}</option>)}</select></label>)}</div>}
+        {payload.type === "match" && <MatchExercise key={exercise!.id} left={payload.left!} right={payload.right!} matched={attempt?.matched_pairs ?? {}} result={pairResult} disabled={busy || !!feedback || hasPending} onPair={pair => { void check(pair); }} />}
       </fieldset>
     </section>}
-    <footer className={`feedback-bar ${feedback ? feedback.correct ? "correct" : "incorrect" : ""}`}>
+    <footer data-testid="feedback-bar" className={`feedback-bar ${feedback ? `feedback-visible ${feedback.correct ? "correct" : "incorrect"}` : ""}`}>
       {error && <p role="alert">{error}</p>}
       {feedback && <div role="status"><h2>{feedback.correct ? "✓ Nicely done!" : "Let’s try that again"}</h2>{!feedback.correct && <p>Correct answer: <strong>{feedback.expected}</strong></p>}</div>}
-      {attempt && payload ? <button className="action-button" disabled={busy || (!feedback && !ready && !hasPending)} onClick={feedback ? next : check}>{busy ? "Saving…" : feedback ? "Continue" : hasPending ? "Retry saving answer" : "Check"}</button> : error && <button className="action-button" onClick={() => setRetry(v => v + 1)}>Try again</button>}
+      {attempt && payload ? <button className="action-button" disabled={busy || (!feedback && !ready && !hasPending)} onClick={feedback ? next : () => { void check(); }}>{busy ? "Saving…" : feedback ? "Continue" : hasPending ? "Retry saving answer" : payload.type === "match" ? "Continue" : "Check"}</button> : error && <button className="action-button" onClick={() => setRetry(v => v + 1)}>Try again</button>}
     </footer>
-    {modal === "complete" && <Modal><div className="modal-art">🏆</div><h1>Lesson complete!</h1><p>You’re one step closer. Keep that momentum going!</p><div className="result-summary"><span>⚡ {feedback?.xp_earned ?? ""} XP{!feedback && " saved"}</span><span>♥ {hearts} hearts</span></div><p className="muted">Your progress is saved. Rewards may take a moment to update.</p><Link className="action-button" href="/">Back to the path</Link></Modal>}
+    {modal === "complete" && <Modal><Celebration /><div className="modal-art celebration-trophy">🏆</div><h1>Lesson complete!</h1><p>You’re one step closer. Keep that momentum going!</p><div className="result-summary"><XpRollup value={feedback?.xp_earned ?? 0} saved={!feedback} /><span>♥ {hearts} hearts</span></div><p className="muted">Your progress is saved. Rewards may take a moment to update.</p><Link className="action-button" href="/">Back to the path</Link></Modal>}
     {modal === "hearts" && <Modal><div className="modal-art">💔</div><h1>Time for a little break</h1><p>You’re out of hearts. You’ll get one back every 30 minutes, up to five. Your lesson progress is saved.</p><Link className="action-button" href="/">Back to the path</Link></Modal>}
     {modal === "exit" && <Modal><div className="modal-art">🦉</div><h1>Take a break?</h1><p>Your saved answers will be here when you come back.</p><button className="action-button" onClick={() => setModal(null)}>Keep learning</button><Link className="secondary-action" href="/">Save and exit</Link></Modal>}
   </main>;

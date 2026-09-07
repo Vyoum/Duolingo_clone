@@ -6,8 +6,8 @@ export type Learner = { user_id: string; name: string; xp: number; streak: numbe
 export type LessonNode = { id: string; xp_reward: number; completed: boolean; unlocked: boolean };
 export type Course = { name: string; units: { id: string; title: string; skills: { id: string; title: string; icon: string; crowns: number; lessons: LessonNode[] }[] }[] };
 export type Payload = { type: "multiple_choice" | "translate" | "match" | "fill_blank" | "type_answer"; prompt: string; options?: string[]; tokens?: string[]; sentence?: string; left?: string[]; right?: string[] };
-export type Attempt = { id: string; lesson_id: string; position: number; correct: number; incorrect: number; status: string; lesson: { xp_reward: number; exercises: { id: string; payload: Payload }[] } };
-export type Feedback = { correct: boolean; expected: string; position: number; completed: boolean; hearts: number; out_of_hearts: boolean; xp_earned: number };
+export type Attempt = { id: string; lesson_id: string; position: number; correct: number; incorrect: number; status: string; matched_pairs?: Record<string, string>; lesson: { xp_reward: number; exercises: { id: string; payload: Payload }[] } };
+export type Feedback = { correct: boolean; expected: string; position: number; completed: boolean; hearts: number; out_of_hearts: boolean; xp_earned: number; exercise_complete?: boolean; matched_pairs?: Record<string, string> };
 
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }

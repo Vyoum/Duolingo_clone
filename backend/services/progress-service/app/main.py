@@ -27,6 +27,7 @@ def initialize():
         db.execute('CREATE TABLE IF NOT EXISTS answers (attempt_id TEXT NOT NULL REFERENCES attempts(id), key TEXT NOT NULL, body TEXT NOT NULL, response TEXT NOT NULL, PRIMARY KEY(attempt_id,key))')
         db.execute('CREATE TABLE IF NOT EXISTS completions (user_id TEXT NOT NULL, lesson_id TEXT NOT NULL, PRIMARY KEY(user_id,lesson_id))')
         db.execute('CREATE TABLE IF NOT EXISTS outbox (id TEXT PRIMARY KEY, payload TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 0)')
+        db.execute('CREATE TABLE IF NOT EXISTS matched_pairs (attempt_id TEXT NOT NULL REFERENCES attempts(id), exercise_id TEXT NOT NULL, left_word TEXT NOT NULL, right_word TEXT NOT NULL, PRIMARY KEY(attempt_id,exercise_id,left_word), UNIQUE(attempt_id,exercise_id,right_word))')
 
 
 def publish_once(client):
@@ -79,8 +80,18 @@ def owned(db, attempt_id, user):
     return row
 
 
-def attempt_view(row):
-    return {k: row[k] for k in ('id', 'lesson_id', 'position', 'correct', 'incorrect', 'status')} | {'lesson': public_lesson(json.loads(row['lesson']))}
+def matched_pairs(db, attempt_id, exercise_id):
+    return dict(db.execute(
+        'SELECT left_word,right_word FROM matched_pairs WHERE attempt_id=? AND exercise_id=?',
+        (attempt_id, exercise_id),
+    ).fetchall())
+
+
+def attempt_view(row, db):
+    lesson = public_lesson(json.loads(row['lesson']))
+    current = lesson['exercises'][row['position']] if row['position'] < len(lesson['exercises']) else None
+    pairs = matched_pairs(db, row['id'], current['id']) if current else {}
+    return {k: row[k] for k in ('id', 'lesson_id', 'position', 'correct', 'incorrect', 'status')} | {'lesson': lesson, 'matched_pairs': pairs}
 
 
 @app.get('/health')
@@ -118,7 +129,7 @@ def start(body: Start, x_user_id: UUID = Header(), idempotency_key: str = Header
         if previous:
             if previous['lesson_id'] != lesson_id:
                 raise HTTPException(409, 'Idempotency key belongs to a different lesson')
-            return attempt_view(previous)
+            return attempt_view(previous, db)
     course = path(x_user_id)
     lessons = [l for u in course['units'] for s in u['skills'] for l in s['lessons']]
     selected = next((l for l in lessons if l['id'] == lesson_id), None)
@@ -138,34 +149,36 @@ def start(body: Start, x_user_id: UUID = Header(), idempotency_key: str = Header
         if previous:
             if previous['lesson_id'] != lesson_id:
                 raise HTTPException(409, 'Idempotency key belongs to a different lesson')
-            return attempt_view(previous)
+            return attempt_view(previous, db)
         active = db.execute('SELECT * FROM attempts WHERE user_id=? AND status="active"', (user,)).fetchone()
         if active and active['lesson_id'] == lesson_id:
             db.execute('INSERT INTO start_requests VALUES(?,?,?,?)', (user, idempotency_key, lesson_id, active['id']))
-            return attempt_view(active)
+            return attempt_view(active, db)
         if active:
             db.execute('UPDATE attempts SET status="abandoned" WHERE id=?', (active['id'],))
         aid = str(uuid4())
         db.execute('INSERT INTO attempts(id,user_id,lesson_id,start_key,lesson) VALUES(?,?,?,?,?)', (aid, user, lesson_id, idempotency_key, json.dumps(lesson)))
         db.execute('INSERT INTO start_requests VALUES(?,?,?,?)', (user, idempotency_key, lesson_id, aid))
-        return attempt_view(owned(db, aid, user))
+        return attempt_view(owned(db, aid, user), db)
 
 
 @app.get('/api/v1/attempts/{attempt_id}')
 def get_attempt(attempt_id: UUID, x_user_id: UUID = Header()):
     with transaction(DB) as db:
-        return attempt_view(owned(db, attempt_id, x_user_id))
+        return attempt_view(owned(db, attempt_id, x_user_id), db)
 
 
 class Answer(BaseModel):
     exercise_id: UUID
     answer: str | int | list[str] | dict[str, str]
+    match_pair: bool = False
 
 
 @app.post('/api/v1/attempts/{attempt_id}/answers')
 def submit(attempt_id: UUID, body: Answer, x_user_id: UUID = Header(), idempotency_key: str = Header(min_length=1, max_length=128)):
     user, aid = str(x_user_id), str(attempt_id)
-    encoded = json.dumps(body.model_dump(mode='json'), sort_keys=True)
+    # Keep fingerprints of legacy full-exercise submissions stable.
+    encoded = json.dumps(body.model_dump(mode='json', exclude_defaults=True), sort_keys=True)
     with transaction(DB) as db:
         row = owned(db, aid, user)
         old = db.execute('SELECT * FROM answers WHERE attempt_id=? AND key=?', (aid, idempotency_key)).fetchone()
@@ -179,18 +192,41 @@ def submit(attempt_id: UUID, body: Answer, x_user_id: UUID = Header(), idempoten
         exercise = lesson['exercises'][row['position']]
         if exercise['id'] != str(body.exercise_id):
             raise HTTPException(409, 'Answer the current exercise first')
-        correct, expected = grade(exercise['payload'], body.answer)
+        pairs = matched_pairs(db, aid, exercise['id'])
+        if body.match_pair:
+            payload = exercise['payload']
+            if payload['type'] != 'match' or not isinstance(body.answer, dict) or len(body.answer) != 1:
+                raise HTTPException(422, 'Submit exactly one pair for a matching exercise')
+            left, right = next(iter(body.answer.items()))
+            solutions = {pair['left']: pair['right'] for pair in payload['pairs']}
+            if left not in solutions or right not in solutions.values():
+                raise HTTPException(422, 'Choose words from the current exercise')
+            if left in pairs or right in pairs.values():
+                raise HTTPException(409, 'That word has already been matched')
+            correct = solutions[left] == right
+            expected = 'Pair matched!' if correct else 'Those words do not match. Try again.'
+            exercise_complete = correct and len(pairs) + 1 == len(solutions)
+        else:
+            correct, expected = grade(exercise['payload'], body.answer)
+            exercise_complete = correct
         # Stable across rollback/retry, independent of the caller's key. The game
         # service stores a request fingerprint so changed retries cannot sneak through.
         operation = f'{aid}:{row["position"]}:{row["incorrect"]}'
+        if pairs or body.match_pair:
+            operation += f':pairs:{len(pairs)}'
         hearts = request(GAME_URL, '/internal/hearts', method='POST', json={'user_id': user, 'operation': operation, 'cost': 0 if correct else 1, 'fingerprint': encoded})
-        position = row['position'] + int(correct)
+        if body.match_pair and correct:
+            db.execute('INSERT INTO matched_pairs VALUES(?,?,?,?)', (aid, exercise['id'], left, right))
+            pairs[left] = right
+        position = row['position'] + int(exercise_complete)
         completed = position == len(lesson['exercises'])
-        db.execute('UPDATE attempts SET position=?, correct=correct+?, incorrect=incorrect+?, status=? WHERE id=?', (position, int(correct), int(not correct), 'completed' if completed else 'active', aid))
+        db.execute('UPDATE attempts SET position=?, correct=correct+?, incorrect=incorrect+?, status=? WHERE id=?', (position, int(exercise_complete), int(not correct), 'completed' if completed else 'active', aid))
         if completed:
             first = db.execute('INSERT OR IGNORE INTO completions VALUES(?,?)', (user, lesson['id'])).rowcount == 1
             event = LessonCompletedEvent(event_id=uuid4(), user_id=x_user_id, lesson_id=lesson['id'], lesson_attempt_id=attempt_id, exercises_correct=row['correct']+1, exercises_incorrect=row['incorrect'], hearts_lost=row['incorrect'], xp_earned=lesson['xp_reward'] if first else 5, completed_at=datetime.now(timezone.utc))
             db.execute('INSERT INTO outbox(id,payload) VALUES(?,?)', (str(event.event_id), event.model_dump_json()))
         result = {'correct': correct, 'expected': expected, 'position': position, 'completed': completed, 'hearts': hearts['hearts'], 'out_of_hearts': hearts['hearts'] == 0, 'xp_earned': event.xp_earned if completed else 0}
+        if body.match_pair:
+            result.update(exercise_complete=exercise_complete, matched_pairs=pairs)
         db.execute('INSERT INTO answers VALUES(?,?,?,?)', (aid, idempotency_key, encoded, json.dumps(result)))
         return result

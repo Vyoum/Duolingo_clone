@@ -92,6 +92,7 @@ erDiagram
 ```mermaid
 erDiagram
   ATTEMPTS ||--o{ ANSWERS : records
+  ATTEMPTS ||--o{ MATCHED_PAIRS : saves
   ATTEMPTS ||--o{ START_REQUESTS : deduplicates
   ATTEMPTS { text id PK
     text user_id
@@ -105,6 +106,10 @@ erDiagram
     text key PK
     text body
     text response }
+  MATCHED_PAIRS { text attempt_id PK,FK
+    text exercise_id PK
+    text left_word PK
+    text right_word }
   START_REQUESTS { text user_id PK
     text key PK
     text lesson_id
@@ -161,6 +166,8 @@ Answer shapes:
 | `fill_blank` | String |
 | `type_answer` | String |
 
+The matching UI uses two columns of tappable word tiles. It submits one pair at a time with `"match_pair": true` and `"answer": {"apple": "manzana"}` alongside `exercise_id`. Pair responses include `matched_pairs` and `exercise_complete`; saved pairs also appear when resuming an attempt. Correct pairs lock and fade, incorrect pairs cost a heart, and Continue enables after all pairs match. Retries reuse the idempotency key. Full-map matching submissions remain supported.
+
 Incorrect answers stay on the current exercise and cost one heart. Every exercise must be answered correctly to complete a lesson. Text comparison uses Unicode NFC, case folding, and collapsed whitespace; accents are significant unless the seed explicitly accepts an unaccented variant. Invalid input returns 422; locked lessons/out of hearts return 403; stale submissions return 409; rate limit returns 429 with `Retry-After`; unavailable upstreams return 503.
 
 ## Delivery and correctness
@@ -200,7 +207,7 @@ npm run build
 
 Backend tests use temporary on-disk databases, real FastAPI handlers, fixture curriculum transport, and fake Redis. They cover all five graders, locking, identity isolation, idempotency conflicts, concurrent retries, heart exhaustion/regeneration, a lost heart response, durable restart state, outbox failure/replay, pending event recovery, UTC streaks, leaderboard, and gateway rate limits. These tests do not replace a real PostgreSQL/Redis/Compose smoke test.
 
-Verification completed in this workspace: 16 backend tests; 3 browser contract tests with controlled API responses; frontend ESLint, TypeScript, and production Webpack build. Compose configuration validates. The full container build failed and its retry was not approved, so real PostgreSQL/Redis/Compose integration and the hosted deployment remain unverified.
+Verification completed in this workspace: 19 backend tests; 6 browser contract tests with controlled API responses, including mobile/desktop matching, reload persistence, and failed-request retries; frontend ESLint and TypeScript. A production Webpack build passed before the matching update. Compose configuration validates. The full container build failed and its retry was not approved, so real PostgreSQL/Redis/Compose integration and the hosted deployment remain unverified.
 
 For browser tests against a running stack, see [frontend/README.md](frontend/README.md). Deployment instructions and current limitations are in [DEPLOYMENT.md](DEPLOYMENT.md).
 

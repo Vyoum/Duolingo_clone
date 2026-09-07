@@ -13,6 +13,7 @@ test.beforeEach(async ({ context }, testInfo) => {
 test("UI renders five exercise types, restores progress, feedback, and completion", async ({ page }) => {
   let position = 0;
   let mistakes = 0;
+  const matched: Record<string, string> = {};
   const exercises = [
     { id: "one", payload: { type: "multiple_choice", prompt: "Choose hello", options: ["hola", "adiós"] } },
     { id: "two", payload: { type: "translate", prompt: "Translate good morning", tokens: ["Buenos", "días"] } },
@@ -22,11 +23,18 @@ test("UI renders five exercise types, restores progress, feedback, and completio
   ];
   const submissions: unknown[] = [];
   await page.route("**/api/v1/me", route => route.fulfill({ json: { hearts: 5, xp: 0, streak: 0 } }));
-  await page.route("**/api/v1/attempts", route => route.fulfill({ json: { id: "demo", lesson_id: "demo", position, correct: position, incorrect: mistakes, status: "active", lesson: { xp_reward: 20, exercises } } }));
+  await page.route("**/api/v1/attempts", route => route.fulfill({ json: { id: "demo", lesson_id: "demo", position, correct: position, incorrect: mistakes, status: "active", matched_pairs: position === 2 ? matched : {}, lesson: { xp_reward: 20, exercises } } }));
   await page.route("**/api/v1/attempts/demo/answers", async route => {
     const body = route.request().postDataJSON();
     expect(route.request().headers()["idempotency-key"]).toBeTruthy();
     submissions.push(body.answer);
+    if (body.match_pair) {
+      Object.assign(matched, body.answer);
+      const exerciseComplete = Object.keys(matched).length === 2;
+      if (exerciseComplete) position++;
+      await route.fulfill({ json: { correct: true, expected: "Pair matched!", position, completed: false, hearts: 5 - mistakes, out_of_hearts: false, xp_earned: 0, exercise_complete: exerciseComplete, matched_pairs: matched } });
+      return;
+    }
     const correct = submissions.length !== 1;
     if (correct) position++; else mistakes++;
     await route.fulfill({ json: { correct, expected: "hola", position, completed: position === 5, hearts: 5 - mistakes, out_of_hearts: false, xp_earned: position === 5 ? 20 : 0 } });
@@ -35,7 +43,12 @@ test("UI renders five exercise types, restores progress, feedback, and completio
   await page.getByRole("button", { name: /adiós/ }).click();
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await expect(page.getByText("Let’s try that again")).toBeVisible();
-  await expect(page.getByLabel("4 hearts")).toBeVisible();
+  const feedbackBar = page.getByTestId("feedback-bar");
+  await expect(feedbackBar).toHaveClass(/feedback-visible/);
+  await expect(feedbackBar).toHaveCSS("animation-name", "feedback-slide-in");
+  const hearts = page.getByLabel("4 hearts");
+  await expect(hearts).toHaveClass(/heart-shake/);
+  await expect(hearts).toHaveCSS("animation-name", "heart-shake");
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: /hola/ }).click();
   await page.getByRole("button", { name: "Check", exact: true }).click();
@@ -46,10 +59,15 @@ test("UI renders five exercise types, restores progress, feedback, and completio
   await page.getByRole("button", { name: "días", exact: true }).click();
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByLabel("Spanish match for apple").selectOption("manzana");
-  await page.getByLabel("Spanish match for milk").selectOption("leche");
+  await expect(page.getByRole("heading", { name: "Tap the matching pairs" })).toBeVisible();
+  await page.getByRole("button", { name: "apple", exact: true }).click();
+  await page.getByRole("button", { name: "manzana", exact: true }).click();
+  await expect(page.getByRole("button", { name: "apple, matched", exact: true })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "apple, matched", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "leche", exact: true }).click();
+  await page.getByRole("button", { name: "milk", exact: true }).click();
   await page.screenshot({ path: "test-results/player-ui.png", fullPage: true });
-  await page.getByRole("button", { name: "Check", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: /agua/ }).click();
   await page.getByRole("button", { name: "Check", exact: true }).click();
@@ -59,7 +77,10 @@ test("UI renders five exercise types, restores progress, feedback, and completio
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lesson complete!" })).toBeVisible();
-  expect(submissions).toEqual([1, 0, ["Buenos", "días"], { apple: "manzana", milk: "leche" }, "agua", "adiós"]);
+  await expect(page.getByTestId("lesson-celebration")).toBeVisible();
+  await expect(page.getByTestId("xp-rollup")).toHaveAttribute("aria-label", "20 XP earned");
+  await expect(page.getByTestId("xp-rollup")).toContainText("20 XP");
+  expect(submissions).toEqual([1, 0, ["Buenos", "días"], { apple: "manzana" }, { milk: "leche" }, "agua", "adiós"]);
 });
 
 test("UI shows out-of-hearts dialog when start is blocked", async ({ page }) => {
@@ -112,3 +133,78 @@ test("responsive stats show live XP and desktop-only gems", async ({ page }) => 
   await expect(desktopStats.getByLabel("Hearts: 4")).toBeVisible();
   await expect(desktopStats.getByText("20", { exact: true })).toHaveCount(0);
 });
+
+for (const width of [390, 1440]) {
+  test(`matching tiles handle selection, mistakes, and retry safely at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: width === 1440 ? "reduce" : "no-preference" });
+    const matched: Record<string, string> = {};
+    const solutions: Record<string, string> = { apple: "manzana", bread: "pan", milk: "leche" };
+    const requests: { key: string; body: unknown }[] = [];
+    let hearts = 5;
+    let dropped = false;
+    let lastReply: Record<string, unknown> = {};
+    await page.route("**/api/v1/me", route => route.fulfill({ json: { hearts, xp: 0, streak: 0 } }));
+    await page.route("**/api/v1/attempts", route => route.fulfill({ json: {
+      id: "matching", lesson_id: "demo", position: 0, status: "active", correct: 0, incorrect: 0,
+      matched_pairs: matched, lesson: { xp_reward: 15, exercises: [{ id: "pairs", payload: {
+        type: "match", prompt: "Match food words", left: Object.keys(solutions), right: ["leche", "manzana", "pan"],
+      } }] },
+    } }));
+    await page.route("**/api/v1/attempts/matching/answers", async route => {
+      const body = route.request().postDataJSON();
+      const key = route.request().headers()["idempotency-key"];
+      expect(body.match_pair).toBe(true);
+      const retry = requests.some(request => request.key === key);
+      requests.push({ key, body });
+      if (retry) { await route.fulfill({ json: lastReply }); return; }
+      const [left, right] = Object.entries(body.answer)[0];
+      const correct = solutions[left] === right;
+      if (correct) matched[left] = right as string; else hearts--;
+      const complete = Object.keys(matched).length === 3;
+      lastReply = { correct, expected: correct ? "Pair matched!" : "Those don’t match.",
+        position: complete ? 1 : 0, completed: complete, exercise_complete: complete,
+        hearts, out_of_hearts: false, matched_pairs: { ...matched }, xp_earned: complete ? 15 : 0 };
+      if (correct && !dropped) { dropped = true; await route.abort("failed"); return; }
+      await route.fulfill({ json: lastReply });
+    });
+
+    await page.goto("/lesson/demo");
+    await expect(page.getByRole("heading", { name: "Tap the matching pairs" })).toBeVisible();
+    await expect(page.getByRole("combobox")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
+    const word = (name: string) => page.getByRole("button", { name, exact: true });
+    await word("milk").click();
+    await expect(word("milk")).toHaveAttribute("aria-pressed", "true");
+    await word("milk").click();
+    await expect(word("milk")).toHaveAttribute("aria-pressed", "false");
+    await word("milk").click();
+    await word("apple").click();
+    await expect(word("milk")).toHaveAttribute("aria-pressed", "false");
+    expect(requests).toHaveLength(0);
+    await page.screenshot({ path: `test-results/matching-${width}.png`, fullPage: true });
+    await word("leche").click();
+    await expect(page.getByText("Those don’t match. Try again.")).toBeVisible();
+    await expect(page.getByLabel("4 hearts")).toBeVisible();
+    if (width === 1440) await expect(word("apple")).toHaveCSS("animation-name", "none");
+
+    await expect(word("apple")).toBeEnabled();
+    await word("apple").focus();
+    await page.keyboard.press("Enter");
+    await word("manzana").click();
+    await expect(page.getByRole("button", { name: "Retry saving answer" })).toBeVisible();
+    await expect(word("bread")).toBeDisabled();
+    await page.getByRole("button", { name: "Retry saving answer" }).click();
+    await expect(word("apple, matched")).toBeDisabled();
+    expect(requests[1]).toEqual(requests[2]);
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
+    await word("pan").click();
+    await word("bread").click();
+    await word("milk").click();
+    await word("leche").click();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Lesson complete!" })).toBeVisible();
+    await expect(page.getByTestId("xp-rollup")).toContainText("15 XP");
+    expect(requests).toHaveLength(5);
+  });
+}

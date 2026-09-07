@@ -38,11 +38,13 @@ test("complete all five exercise types, resume, unlock, and persist rewards", as
   await page.getByRole("button", { name: /agua/ }).click();
   await page.getByRole("button", { name: "Check", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByLabel("Spanish match for apple").selectOption("manzana");
-  await page.getByLabel("Spanish match for bread").selectOption("pan");
-  await page.getByLabel("Spanish match for milk").selectOption("leche");
+  await page.getByRole("button", { name: "apple", exact: true }).click();
+  await page.getByRole("button", { name: "manzana", exact: true }).click();
+  await page.getByRole("button", { name: "bread", exact: true }).click();
+  await page.getByRole("button", { name: "pan", exact: true }).click();
+  await page.getByRole("button", { name: "milk", exact: true }).click();
+  await page.getByRole("button", { name: "leche", exact: true }).click();
   await page.screenshot({ path: "test-results/matching-exercise.png", fullPage: true });
-  await page.getByRole("button", { name: "Check", exact: true }).click();
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Lesson complete!" })).toBeVisible();
   await page.getByRole("link", { name: "Back to the path" }).click();
