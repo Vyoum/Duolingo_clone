@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type Attempt, type Feedback, type Learner } from "@/lib/api";
 import { playCorrectChime, playIncorrectThud } from "@/lib/feedback-sfx";
 import { AnimatedNumber, motion, slideUp, softSpring, springPop } from "@/lib/motion";
+import { LessonCompleteDelight } from "./LessonCompleteDelight";
 import { MatchExercise, type PairResult } from "./MatchExercise";
 
 type Answer = string | number | string[] | Record<string, string>;
@@ -53,31 +54,6 @@ function CorrectVoiceBurst({ message }: { message: string }) {
 }
 
 const CORRECT_LINES = ["Nicely done!", "Great job!", "You got it!", "Amazing!"];
-
-function XpRollup({ value, saved }: { value: number; saved: boolean }) {
-  return (
-    <motion.span
-      className="xp-rollup"
-      data-testid="xp-rollup"
-      aria-label={saved ? "XP saved" : `${value} XP earned`}
-      initial={{ scale: 0.85, opacity: 0.6 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={springPop}
-    >
-      <span aria-hidden>
-        ⚡ {saved ? "XP saved" : <><AnimatedNumber value={value} /> XP</>}
-      </span>
-    </motion.span>
-  );
-}
-
-function Celebration() {
-  return (
-    <div className="lesson-celebration" data-testid="lesson-celebration" aria-hidden>
-      {Array.from({ length: 12 }, (_, index) => <span key={index} />)}
-    </div>
-  );
-}
 
 export function LessonPlayer({ lessonId }: { lessonId: string }) {
   const reduce = useReducedMotion();
@@ -239,20 +215,11 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     <AnimatePresence>
       {modal === "complete" && (
         <Modal key="complete">
-          <Celebration />
-          <motion.div
-            className="modal-art celebration-trophy"
-            initial={reduce ? false : { scale: 0.4, y: 30, rotate: -12 }}
-            animate={{ scale: 1, y: 0, rotate: 0 }}
-            transition={springPop}
-          >
-            🏆
-          </motion.div>
-          <h1>Lesson complete!</h1>
-          <p>You’re one step closer. Keep that momentum going!</p>
-          <div className="result-summary"><XpRollup value={feedback?.xp_earned ?? 0} saved={!feedback} /><span>♥ <AnimatedNumber value={hearts} /> hearts</span></div>
-          <p className="muted">Your progress is saved. Rewards may take a moment to update.</p>
-          <Link className="action-button" href="/">Back to the path</Link>
+          <LessonCompleteDelight
+            xp={feedback?.xp_earned ?? 0}
+            hearts={hearts}
+            saved={!feedback}
+          />
         </Modal>
       )}
       {modal === "hearts" && (

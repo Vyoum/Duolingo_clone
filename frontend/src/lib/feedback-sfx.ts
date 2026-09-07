@@ -75,3 +75,15 @@ export function playBadgeFanfare() {
   tone(ctx, { frequency: 783.99, start: t + 0.36, duration: 0.28, type: "sine", gain: 0.1 });
   tone(ctx, { frequency: 1046.5, start: t + 0.48, duration: 0.35, type: "triangle", gain: 0.07 });
 }
+
+/** Lesson-complete delight: rising arpeggio + soft sparkle. */
+export function playLessonCompleteFanfare() {
+  const ctx = context();
+  if (!ctx) return;
+  const t = ctx.currentTime;
+  tone(ctx, { frequency: 523.25, start: t, duration: 0.12, type: "triangle", gain: 0.07 });
+  tone(ctx, { frequency: 659.25, start: t + 0.09, duration: 0.14, type: "triangle", gain: 0.08 });
+  tone(ctx, { frequency: 783.99, start: t + 0.18, duration: 0.16, type: "sine", gain: 0.09 });
+  tone(ctx, { frequency: 1046.5, start: t + 0.3, duration: 0.28, type: "sine", gain: 0.1 });
+  tone(ctx, { frequency: 1318.5, start: t + 0.42, duration: 0.38, type: "triangle", gain: 0.06 });
+}

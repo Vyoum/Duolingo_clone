@@ -1,35 +1,61 @@
 # Hosted deployment
 
-Deployment files are prepared, but no hosted instance has been published or verified. This workspace has no Vercel login or selected backend hosting project. Do not substitute a local URL for an assignment's hosted URL.
+Live demo for this submission:
 
-## Render backend
+| Role | URL |
+| --- | --- |
+| Frontend (open this) | https://duolingo-clone-vyoum.vercel.app |
+| Gateway | https://gateway-b711.onrender.com |
+| Gateway `/health` | https://gateway-b711.onrender.com/health |
+| Content `/health` | https://content-3q6p.onrender.com/health |
+| Progress `/health` | https://progress-bhef.onrender.com/health |
+| Gamification `/health` | https://gamification-b7nt.onrender.com/health |
 
-`render.yaml` provisions PostgreSQL, Redis-compatible Key Value, three private services, and a public gateway. Progress and Gamification each have a 1 GB persistent disk. The Blueprint uses paid service plans; review the account's cost estimate before applying it.
+Click **LOG IN** on the Vercel app (demo cookie, no real auth). Bare Render service roots return FastAPI `{"detail":"Not Found"}`; use `/health` to verify a service is up.
 
-1. Push the reviewed project to your Git repository.
-2. In your Render account, create a Blueprint from that repository's `render.yaml`.
-3. Confirm that all resources use the same region and finish deploying. Content runs Alembic migrations and seeds on startup.
-4. Confirm the gateway's HTTPS `/health` and `/api/v1/path` return successful responses. Record its actual public URL.
+## What persists where
 
-Internal service `hostport` references are normalized to HTTP URLs by the shared runtime. PostgreSQL connection strings are normalized to SQLAlchemy's asyncpg URL by the content settings. Services with SQLite disks run as a single instance. Internal heart endpoints and answer-bearing content are not public routes.
+| Data | Store | Local Compose | Render Free (this demo) |
+| --- | --- | --- | --- |
+| Curriculum | PostgreSQL (Content) | Durable volume | Durable (Free Postgres, 30-day clock) |
+| Attempts, completions | SQLite (Progress) | Durable named volume | Ephemeral disk — can reset on redeploy/restart |
+| XP, streak, hearts | SQLite (Gamification) | Durable named volume | Ephemeral disk — can reset on redeploy/restart |
+| Rate limit / stream / board | Redis | AOF volume | Free Key Value is memory-oriented; restarts may clear cache |
 
-The configuration follows Render's [Blueprint reference](https://render.com/docs/blueprint-spec), including private service references and disks. No cloud resources have been created by adding this file.
+**Planned (scoped out):** move Progress and Gamification to managed Postgres (Neon preferred, because Render allows only one Free Postgres and Content already uses it). That requires code changes beyond `DATABASE_URL` — see README [Planned migration](README.md#planned-migration-scoped-out-of-this-submission).
+
+## Render backend (this submission)
+
+Services were created as Free **web services** (not the paid Blueprint). Public health endpoints are linked above for evaluation. The browser still talks only to Vercel → gateway.
+
+During the evaluation window, periodic `/health` pings (~every 13 minutes) keep services from sleeping. That reduces cold starts; it does not protect SQLite from a redeploy wipe.
+
+Optional paid path: import [`render.yaml`](render.yaml) for private services + persistent disks. Review cost before applying.
 
 ## Vercel frontend
 
-1. Import the repository into the intended Vercel project; set **Root Directory** to `frontend`.
-2. Set server-side `GATEWAY_URL` to the deployed HTTPS gateway origin (no `/api/v1` suffix) for the required environments.
-3. Deploy. `frontend/vercel.json` uses the Next.js preset, `npm ci`, and `npm run build`.
-4. Open the hosted path, complete a lesson, reload, and verify its crown and unlock. Check XP on Profile and Leaderboard after reward delivery.
+1. Root Directory: `frontend`.
+2. Server-only env (then **Redeploy**):
 
-The browser uses same-origin `/api/v1` calls. Only the Next.js server talks to the backend, so there is no browser-exposed backend environment variable. See Vercel's [deployment guide](https://vercel.com/docs/projects/deploy-from-cli) and [environment variable documentation](https://vercel.com/docs/environment-variables).
+```dotenv
+GATEWAY_URL=https://gateway-b711.onrender.com
+WARMUP_ENABLED=true
+CONTENT_HEALTH_URL=https://content-3q6p.onrender.com/health
+PROGRESS_HEALTH_URL=https://progress-bhef.onrender.com/health
+GAMIFICATION_HEALTH_URL=https://gamification-b7nt.onrender.com/health
+```
+
+3. Open the hosted path, complete a lesson, reload, and check crown / Profile XP / Leaderboard.
+
+If services were idle, expect ~30–60 seconds or the **Getting your lessons ready…** screen. Refresh or Retry once.
 
 ## Release smoke checks
 
 - New learner: only the first lesson is available; crafted requests for later lessons fail.
 - Wrong answer: one heart lost; retrying the same network request loses no additional heart.
 - Correct completion: progress saved, next lesson unlocked, XP/streak eventually updated.
-- Refresh/restart: attempts, completed nodes, hearts, and rewards remain.
+- Refresh while services stay up: attempts, completed nodes, hearts, and rewards remain.
+- After a Free Progress/Gamification redeploy: learner SQLite may reset until the Neon/Postgres migration lands.
 - Zero hearts: answer submission blocked, break dialog shown, timestamp-based regeneration restores access.
 - All five exercise types render and grade correctly across the first three lessons.
 

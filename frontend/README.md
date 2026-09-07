@@ -33,4 +33,4 @@ For UI-only checks with controlled HTTP responses, run `npx playwright test test
 
 Set `PLAYWRIGHT_BASE_URL` for another frontend URL. Tests complete lessons using the real backend and leave the shared demo learner progressed. They do not delete its data. Set `PLAYWRIGHT_CHANNEL=chrome` to use an installed Google Chrome instead of Playwright's browser.
 
-For Vercel, set project Root Directory to `frontend`, set `GATEWAY_URL` to the hosted gateway, and deploy using the checked-in `vercel.json`. Hosting has not yet been performed.
+Live frontend: https://duolingo-clone-vyoum.vercel.app (Root Directory `frontend`). Set server-only `GATEWAY_URL=https://gateway-b711.onrender.com`. For Render Free cold starts also set `WARMUP_ENABLED=true` and the three `*_HEALTH_URL` values ending in `/health` (see root README). Redeploy after changing env vars. Full hosting notes: [DEPLOYMENT.md](../DEPLOYMENT.md).

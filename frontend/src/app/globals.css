@@ -253,27 +253,86 @@ progress::-moz-progress-bar { background: var(--duo-green); border-radius: 20px;
 .lesson-modal { position: fixed; inset: 0; margin: auto; max-width: 420px; width: calc(100% - 32px); border: 2px solid var(--duo-border); border-radius: 25px; padding: 28px; background: var(--duo-bg); color: white; text-align: center; overflow: hidden; }
 .lesson-modal::backdrop { background: #050e14cf; backdrop-filter: blur(5px); }
 .modal-art { position: relative; z-index: 1; font-size: 72px; margin-bottom: 15px; }
-.celebration-trophy { animation: trophy-bounce 1.15s cubic-bezier(.2,.8,.2,1) both; }
-.lesson-celebration { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-.lesson-celebration span { position: absolute; top: 43%; left: 50%; width: 9px; height: 16px; border-radius: 3px; background: var(--duo-yellow); animation: confetti-burst 1.25s cubic-bezier(.15,.8,.25,1) both; }
-.lesson-celebration span:nth-child(3n+1) { background: var(--duo-green); }
-.lesson-celebration span:nth-child(3n+2) { background: var(--duo-blue); }
-.lesson-celebration span:nth-child(1) { --x: -150px; --y: -120px; --r: -170deg; }
-.lesson-celebration span:nth-child(2) { --x: -105px; --y: -175px; --r: 130deg; }
-.lesson-celebration span:nth-child(3) { --x: -48px; --y: -145px; --r: -120deg; }
-.lesson-celebration span:nth-child(4) { --x: 22px; --y: -175px; --r: 190deg; }
-.lesson-celebration span:nth-child(5) { --x: 82px; --y: -142px; --r: -145deg; }
-.lesson-celebration span:nth-child(6) { --x: 145px; --y: -95px; --r: 160deg; }
-.lesson-celebration span:nth-child(7) { --x: -160px; --y: -35px; --r: 125deg; }
-.lesson-celebration span:nth-child(8) { --x: 160px; --y: -20px; --r: -180deg; }
-.lesson-celebration span:nth-child(9) { --x: -135px; --y: 65px; --r: 155deg; }
-.lesson-celebration span:nth-child(10) { --x: 130px; --y: 75px; --r: -135deg; }
-.lesson-celebration span:nth-child(11) { --x: -72px; --y: 115px; --r: 180deg; }
-.lesson-celebration span:nth-child(12) { --x: 70px; --y: 125px; --r: -160deg; }
+.celebration-trophy { display: inline-block; }
+.lesson-celebration { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+.lesson-celebration .celebration-piece {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 10px;
+  height: 18px;
+  border-radius: 3px;
+  margin-left: -5px;
+}
+.lesson-complete-delight { position: relative; z-index: 1; }
+.complete-coach {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: -4px 0 14px;
+}
+.complete-coach-owl {
+  position: relative;
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #20343d;
+  border: 3px solid #49606a;
+  box-shadow: inset 0 -4px #15262e;
+}
+.complete-coach-face { font-size: 34px; line-height: 1; }
+.complete-coach-spark {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  font-size: 16px;
+}
+.complete-coach-bubble {
+  max-width: 180px;
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 16px 16px 16px 4px;
+  background: #1b382a;
+  border: 2px solid #4f8f2c;
+  color: #9ce455;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.25;
+  text-align: left;
+}
 .lesson-modal h1 { font-size: 28px; font-weight: 900; margin-bottom: 14px; }
 .lesson-modal p { color: #afc2ca; line-height: 1.6; }
 .result-summary { display: flex; justify-content: space-around; gap: 12px; padding: 20px 0; color: var(--duo-yellow); font-weight: 900; }
+.result-summary-delight { align-items: center; gap: 16px; }
 .xp-rollup { display: inline-block; min-width: 72px; font-variant-numeric: tabular-nums; animation: xp-glow .9s ease-out both; }
+.xp-bump {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 132px;
+  padding: 12px 16px;
+  border-radius: 18px;
+  border: 2px solid #8a6a00;
+  background: linear-gradient(180deg, #3d3208 0%, #2a2308 100%);
+  color: var(--duo-yellow);
+  overflow: hidden;
+}
+.xp-bump-bolt { font-size: 28px; line-height: 1; }
+.xp-bump-copy { display: grid; gap: 2px; text-align: left; }
+.xp-bump-copy span { font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; color: #ffd666; font-weight: 800; }
+.xp-bump-value { font-size: 28px; font-weight: 900; font-variant-numeric: tabular-nums; line-height: 1; }
+.xp-bump-ring {
+  position: absolute;
+  inset: 8px;
+  border-radius: 16px;
+  border: 2px solid #ffc800;
+  pointer-events: none;
+}
+.hearts-kept { font-size: 16px; color: #ffaaa9; }
 .lesson-modal .muted { font-size: 12px; }
 .secondary-action { display: block; margin-top: 20px; font-weight: 800; color: var(--duo-blue); }
 .live-panel { padding: 24px 18px; }

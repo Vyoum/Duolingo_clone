@@ -1,12 +1,13 @@
 # Duolingo Clone
 
-A full-stack Spanish learning application inspired by Duolingo. It combines a responsive Next.js interface with a FastAPI microservice backend, a PostgreSQL curriculum store, durable learner state, and Redis-backed messaging, rate limiting, and rankings. Lessons use real APIs: answers are graded on the server, hearts are charged safely, completed lessons unlock the path, and XP persists across reloads.
+A full-stack Spanish learning application inspired by Duolingo. It combines a responsive Next.js interface with a FastAPI microservice backend, a PostgreSQL curriculum store, learner state in Progress/Gamification, and Redis-backed messaging, rate limiting, and rankings. Lessons use real APIs: answers are graded on the server, hearts are charged safely, completed lessons unlock the path, and XP updates through the reward pipeline. See [Hosted demo](#hosted-demo) for live URLs and Free-tier persistence limits.
 
 > This is an educational clone built for a full-stack assignment. It is not affiliated with or endorsed by Duolingo.
 
 ## Contents
 
 - [Features](#features)
+- [Hosted demo](#hosted-demo)
 - [Architecture](#architecture)
 - [Why PostgreSQL, Redis, and Docker?](#why-postgresql-redis-and-docker)
 - [Project structure](#project-structure)
@@ -21,7 +22,7 @@ A full-stack Spanish learning application inspired by Duolingo. It combines a re
 
 ## Features
 
-| Area | Impleme
+| Area | Implementation |
 | --- | --- |
 | Learning path | Responsive zigzag path, server-enforced sequential unlocks, completion crowns, and skill progress rings |
 | Lesson player | Multiple choice, token translation, tap-to-match columns, fill-in-the-blank, and typed answers |
@@ -34,6 +35,29 @@ A full-stack Spanish learning application inspired by Duolingo. It combines a re
 | UI polish | Desktop and mobile layouts, animations, accessible custom toasts, live navigation stats, badge grid, and empty/demo states |
 
 Super subscriptions, payments, and production authentication are outside the assignment scope. Social suggestions, shop currency, and some profile decoration are presentation fixtures.
+
+## Hosted demo
+
+| Role | URL |
+| --- | --- |
+| Frontend (Vercel) — open this | https://duolingo-clone-vyoum.vercel.app |
+| Gateway (public API) | https://gateway-b711.onrender.com |
+| Gateway health | https://gateway-b711.onrender.com/health |
+| Content health | https://content-3q6p.onrender.com/health |
+| Progress health | https://progress-bhef.onrender.com/health |
+| Gamification health | https://gamification-b7nt.onrender.com/health |
+
+The browser should only use the Vercel app. Next.js proxies `/api/v1` to the gateway. Content, Progress, and Gamification health links are for evaluation transparency; bare service roots return FastAPI `{"detail":"Not Found"}` because they have no homepage.
+
+**Database (what is shipped today)**
+
+- **Content** uses PostgreSQL locally and in production (Alembic migrations, JSONB exercise payloads, shared read catalog).
+- **Progress** and **Gamification** use SQLite. Locally, Compose named volumes keep learner data across restarts. On Render Free they sit on an ephemeral filesystem, so a redeploy or platform restart during evaluation can reset XP, streak, hearts, and completions. The Postgres curriculum survives those events.
+- Managed Postgres for Progress/Gamification (for example Neon) is the correct durable fix. It is identified below as a planned migration and was scoped out of this submission for time.
+
+**Hosting**
+
+All four backend services run on Render Free. During the evaluation window they are kept warm with periodic `/health` pings (~every 13 minutes). If a service has gone idle, the first load can take ~30–60 seconds, or show **Getting your lessons ready…** when `WARMUP_ENABLED=true`. Refresh or Retry once if needed.
 
 ## Architecture
 
@@ -72,7 +96,17 @@ Redis is not the source of truth for learner rewards. Gamification persists proc
 
 **Docker Compose** starts the six-process local system with compatible versions, private service DNS, health checks, startup ordering, environment variables, and named volumes. Reviewers need only Docker Desktop rather than separate PostgreSQL, Redis, Python, and Node installations. Docker is a packaging and local orchestration choice; it does not replace PostgreSQL or Redis and it does not require API keys.
 
-Progress and Gamification use separate SQLite databases in this assignment implementation. This keeps their code and deployment small while preserving service ownership. Their single-writer design is suitable for one instance of an assignment demo. A horizontally scaled production system should move both stores to PostgreSQL.
+Progress and Gamification use separate SQLite databases in this assignment implementation (`sqlite3` + `DB_PATH`, not SQLAlchemy). That keeps each service small and matches the brief’s SQLite expectation for learner state. Local Compose mounts durable volumes for those files. On Render Free without a persistent disk, the same files are ephemeral: sleep alone may keep process memory briefly, but a redeploy or platform restart wipes them. Curriculum Postgres is separate and survives.
+
+### Planned migration (scoped out of this submission)
+
+To make hosted learner persistence match the assignment’s “progress must persist” bar on Free hosting:
+
+1. Provision managed Postgres for Progress and Gamification (Neon is the preferred free option because this workspace already uses Render’s single Free Postgres for Content).
+2. Replace the shared `sqlite3` transaction helper with a Postgres-backed store (or SQLAlchemy) and adapt SQLite-specific SQL (`INSERT OR IGNORE`, partial unique indexes, quoted identifiers).
+3. Point each service at its `DATABASE_URL`, run schema create/migrate on startup, redeploy, and re-verify path unlocks, XP, streak, and hearts across a forced Render restart.
+
+This is a real code change, not an env-only swap. It was deferred after the live demo, warmup, and evaluation keep-warm path were in place.
 
 ## Project structure
 
@@ -322,33 +356,44 @@ Progress is immediately consistent; XP/streak/quests are eventually consistent, 
 
 ## Render free-plan notes
 
+### What is deployed today
+
+| Service | Live origin / health | Data store on Free |
+| --- | --- | --- |
+| Frontend | https://duolingo-clone-vyoum.vercel.app | N/A (Vercel) |
+| Gateway | https://gateway-b711.onrender.com · [/health](https://gateway-b711.onrender.com/health) | Redis rate limit |
+| Content | [/health](https://content-3q6p.onrender.com/health) | Render Free PostgreSQL (curriculum) |
+| Progress | [/health](https://progress-bhef.onrender.com/health) | SQLite on ephemeral disk |
+| Gamification | [/health](https://gamification-b7nt.onrender.com/health) | SQLite on ephemeral disk |
+
+**Persistence caveat (honest):** local Compose volumes make Progress/Gamification durable across container restarts. On this Free Render deployment, SQLite can reset after redeploy or platform restart. Periodic `/health` pings (~every 13 minutes) during evaluation reduce idle sleep and cold starts; they do **not** survive a redeploy wipe. Neon (or another managed Postgres) for those two services is the planned durable fix — see [Planned migration](#planned-migration-scoped-out-of-this-submission).
+
 ### Automatic startup for anytime evaluation
 
-The frontend supports parallel health probes and a startup screen for sleeping Render services. In Vercel, set these **server-only** environment variables, then redeploy:
+The frontend supports parallel health probes and a startup screen for sleeping Render services. In Vercel, set these **server-only** environment variables, then **redeploy** (env changes do not apply to an old build):
 
 ```dotenv
 WARMUP_ENABLED=true
-GATEWAY_URL=https://your-gateway.onrender.com
-CONTENT_HEALTH_URL=https://your-content.onrender.com/health
-PROGRESS_HEALTH_URL=https://your-progress.onrender.com/health
-GAMIFICATION_HEALTH_URL=https://your-gamification.onrender.com/health
+GATEWAY_URL=https://gateway-b711.onrender.com
+CONTENT_HEALTH_URL=https://content-3q6p.onrender.com/health
+PROGRESS_HEALTH_URL=https://progress-bhef.onrender.com/health
+GAMIFICATION_HEALTH_URL=https://gamification-b7nt.onrender.com/health
 ```
 
-Replace each example with the actual service URL. All four services must return JSON with `status: "ok"`. `/api/warmup` probes them concurrently with four-second timeouts, without returning their addresses to the browser. The startup screen retries for approximately two minutes, then offers Retry. It mounts the learning UI only after successful health checks. This is on-demand startup, not scheduled keep-alive traffic. Health checks indicate service liveness; subsequent data requests can still fail if a database or dependency is unavailable.
+`GATEWAY_URL` is the service origin (no `/health`, no `/api/v1`). The three `*_HEALTH_URL` values must end in `/health` and return JSON with `status: "ok"`. `/api/warmup` probes them concurrently with four-second timeouts and never returns those addresses to the browser. The startup screen retries for approximately two minutes, then offers Retry. This is on-demand wakeup, not a substitute for keep-alive pings.
 
-Temporary network failures and HTTP 502/503/504 responses receive at most two additional API attempts with exponential backoff. Writes are retried only when they carry an idempotency key, retaining the identical body and key. Validation errors, conflicts, and rate-limit responses are not automatically replayed. A failed request also probes the services again to help recover a tab left open during inactivity. Warm-up is disabled by default locally; enable it when testing this behavior. It does not change SQLite persistence or remove Render's cold-start delay.
+Temporary network failures and HTTP 502/503/504 responses receive at most two additional API attempts with exponential backoff. Writes are retried only when they carry an idempotency key. Warm-up is disabled by default locally. It does not make Free SQLite durable.
 
-To exercise startup UI and retry safety locally, start Next with `WARMUP_ENABLED=true npm run dev`, then run `WARMUP_ENABLED=true PLAYWRIGHT_CHANNEL=chrome npx playwright test tests/warmup.spec.ts` from `frontend`. These tests simulate the health responses and do not require live Render credentials.
+To exercise startup UI and retry safety locally, start Next with `WARMUP_ENABLED=true npm run dev`, then run `WARMUP_ENABLED=true PLAYWRIGHT_CHANNEL=chrome npx playwright test tests/warmup.spec.ts` from `frontend`.
 
-The repository can run fully on a laptop with Docker Compose, but the checked-in [`render.yaml`](render.yaml) is an **optional paid Blueprint**. It currently declares `starter` services, persistent disks for the two SQLite services, a `starter` Redis-compatible Key Value instance, and a `basic-256mb` PostgreSQL database. Importing it as written may create billable resources.
+The checked-in [`render.yaml`](render.yaml) is an **optional paid Blueprint** (persistent disks for SQLite, paid Redis/Postgres plans). The live demo above was assembled manually on Free web services instead.
 
-For a free-plan demonstration, deploy only resources actually offered by the account and region, and supply external managed services when necessary:
+Free-plan reminders:
 
-- PostgreSQL is required by Content through `DATABASE_URL`. A free external PostgreSQL provider can be used if a Render PostgreSQL database is unavailable on the selected plan.
-- Redis is required through `REDIS_URL`; this application does not need a Redis API key directly. Managed providers commonly encode the username, password, host, port, and TLS choice in one connection URL such as `rediss://...`.
-- Free web-service filesystems may be ephemeral. The current Progress and Gamification SQLite files can therefore disappear after a redeploy or restart unless the service has a persistent disk. For real hosted persistence on a free-only setup, migrate those two databases to managed PostgreSQL rather than relying on local container files.
-- Free services may sleep when idle and can have slow cold starts. The gateway returns `503` while an upstream or Redis is unavailable; retry after the services wake.
-- Keep Content, Progress, Gamification, and Redis private. Expose only Gateway, then set the Vercel frontend's server-only `GATEWAY_URL` to the gateway's HTTPS origin.
+- One Free Render Postgres per workspace (used here by Content). Extra learner databases need Neon or another provider, or paid disks.
+- Free Redis is in-memory; restarts can clear streams/leaderboard cache (rewards remain in SQLite until that file is wiped).
+- Free web services sleep after ~15 minutes idle; first request after idle can take ~30–60 seconds or show the warmup screen.
+- Prefer exposing only the gateway to end users; health URLs above are for reviewers.
 
 Dockerfiles are still useful on Render because each service gets a reproducible Python runtime and start command. Docker Compose itself is for local orchestration; Render starts the deployed services individually and connects them using environment variables.
 
@@ -377,8 +422,9 @@ Do not commit connection URLs or credentials. Configure them in Render/Vercel en
 - Streaks and daily quests use UTC dates, including delayed/out-of-order events. Yesterday's streak remains visible until the current day is missed. Quests are progress goals, with no extra currency or claim action.
 - Hearts cap at five and regenerate every 30 minutes. Regeneration is computed from a persisted timestamp on reads/mutations, so downtime does not stop recovery.
 - Rings show completed lessons within each skill; crowns represent completed lessons. The leaderboard is all-time, with five static demo competitors; weekly leagues are not implemented.
-- SQLite WAL keeps each learner service small and durable for one process/replica on persistent local disk. Transactions serialize writes and hold a lock during heart requests. This is suitable for the assignment, not high write throughput or horizontal scaling; migrate these stores to PostgreSQL for that.
-- Progress/gamification schema v1 is installed idempotently at startup. Content uses Alembic. Future learner schema changes need versioned migrations.
+- SQLite WAL keeps each learner service small for one process/replica. Locally it is durable via Compose volumes. On Render Free without a disk, redeploy/restart can wipe Progress/Gamification state (see Hosted demo). Planned fix: Neon/Postgres migration documented above.
+- Progress/gamification schema v1 is installed idempotently at startup with raw SQL. Content uses Alembic + SQLAlchemy. These are not a single DB-agnostic ORM layer today.
+- Evaluation keep-warm uses ~13-minute `/health` pings for a short window after submission so cold starts are less likely for reviewers.
 - Redis uses AOF and no application stream trimming. The gateway permits 120 requests per minute per fixed demo user, with an atomic expiring counter. Redis failure returns 503 instead of bypassing the limit.
 - Microservices demonstrate ownership and at-least-once delivery, at the cost of latency, retries, and operational complexity.
 
