@@ -1,12 +1,14 @@
 "use client";
+
 import { useApi, type Learner } from "@/lib/api";
+import { AnimatedNumber } from "@/lib/motion";
 
 export function TopStatsBar() {
   const { data, error } = useApi<Learner>("me", true);
   return <header className="sticky top-0 z-40 flex h-14 items-center justify-around gap-2 bg-[var(--duo-bg)] px-4 font-extrabold lg:hidden" aria-label="Mobile learner statistics">
-    <span aria-label={`Day streak: ${data?.streak ?? "loading"}`} title="Day streak"><span aria-hidden>🔥</span> {data?.streak ?? "…"}</span>
-    <span className="text-[var(--duo-yellow)]" aria-label={`Total XP: ${data?.xp ?? "loading"}`} title="Total XP"><span aria-hidden>⚡</span> {data?.xp ?? "…"}</span>
-    <span className="text-[var(--duo-heart)]" aria-label={`Hearts: ${data?.hearts ?? "loading"}`} title={data?.next_heart_at ? `Next heart: ${new Date(data.next_heart_at).toLocaleTimeString()}` : "Hearts"}><span aria-hidden>♥</span> {data?.hearts ?? "…"}</span>
+    <span aria-label={`Day streak: ${data?.streak ?? "loading"}`} title="Day streak"><span aria-hidden>🔥</span>{" "}<AnimatedNumber value={data?.streak} /></span>
+    <span className="text-[var(--duo-yellow)]" aria-label={`Total XP: ${data?.xp ?? "loading"}`} title="Total XP"><span aria-hidden>⚡</span>{" "}<AnimatedNumber value={data?.xp} /></span>
+    <span className="text-[var(--duo-heart)]" aria-label={`Hearts: ${data?.hearts ?? "loading"}`} title={data?.next_heart_at ? `Next heart: ${new Date(data.next_heart_at).toLocaleTimeString()}` : "Hearts"}><span aria-hidden>♥</span>{" "}<AnimatedNumber value={data?.hearts} /></span>
     {error && <span role="status" className="text-xs" title={error}>Offline</span>}
   </header>;
 }

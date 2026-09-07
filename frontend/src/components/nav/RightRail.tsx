@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SuperBadge } from "@/components/layout/TopStatsBar";
 import { useApi, type Learner } from "@/lib/api";
+import { AnimatedNumber } from "@/lib/motion";
 import { showToast } from "@/lib/toast";
 
 const FOOTER_LINKS = [
@@ -68,16 +69,16 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
         aria-label={`Total XP: ${learner?.xp ?? "loading"}`}
         title="Total XP"
       >
-        <span aria-hidden>⚡</span> <span>{learner?.xp ?? "…"}</span>
+        <span aria-hidden>⚡</span> <AnimatedNumber value={learner?.xp} />
       </span>
       <span className="flex items-center gap-1 text-[var(--duo-text-muted)]" aria-label={`Day streak: ${learner?.streak ?? "loading"}`} title="Day streak">
-        <span aria-hidden>🔥</span> {learner?.streak ?? "…"}
+        <span aria-hidden>🔥</span> <AnimatedNumber value={learner?.streak} />
       </span>
       <span className="flex items-center gap-1 text-[var(--duo-blue)]" aria-label="Gems: 132" title="Gems">
         <span aria-hidden>💎</span> 132
       </span>
       <span className="flex items-center gap-1 text-[#FF4B4B]" aria-label={`Hearts: ${learner?.hearts ?? "loading"}`} title="Hearts">
-        <span aria-hidden>♥</span> {learner?.hearts ?? "…"}
+        <span aria-hidden>♥</span> <AnimatedNumber value={learner?.hearts} />
       </span>
     </div>
   );

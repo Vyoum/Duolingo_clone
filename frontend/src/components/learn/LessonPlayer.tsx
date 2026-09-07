@@ -1,22 +1,43 @@
 "use client";
 import Link from "next/link";
+import { AnimatePresence, useReducedMotion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type Attempt, type Feedback, type Learner } from "@/lib/api";
 import { playCorrectChime, playIncorrectThud } from "@/lib/feedback-sfx";
+import { AnimatedNumber, motion, slideUp, softSpring, springPop } from "@/lib/motion";
 import { MatchExercise, type PairResult } from "./MatchExercise";
 
 type Answer = string | number | string[] | Record<string, string>;
 
 function Modal({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const reduce = useReducedMotion();
   useEffect(() => { ref.current?.showModal(); }, []);
-  return <dialog ref={ref} className="lesson-modal" onCancel={e => e.preventDefault()}>{children}</dialog>;
+  return (
+    <dialog ref={ref} className="lesson-modal" onCancel={e => e.preventDefault()}>
+      <motion.div
+        initial={reduce ? false : { opacity: 0, scale: 0.86, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={springPop}
+      >
+        {children}
+      </motion.div>
+    </dialog>
+  );
 }
 
 /** Duo-style speaking mascot that appears with the correct feedback bar. */
 function CorrectVoiceBurst({ message }: { message: string }) {
+  const reduce = useReducedMotion();
   return (
-    <div className="correct-voice" data-testid="correct-voice" aria-hidden>
+    <motion.div
+      className="correct-voice"
+      data-testid="correct-voice"
+      aria-hidden
+      initial={reduce ? false : { opacity: 0, x: -16, scale: 0.9 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      transition={softSpring}
+    >
       <div className="correct-voice-owl">
         <span className="correct-voice-face">🦉</span>
         <span className="correct-voice-waves">
@@ -27,42 +48,26 @@ function CorrectVoiceBurst({ message }: { message: string }) {
         <p className="correct-voice-bubble">{message}</p>
         <small>Keep going!</small>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
 const CORRECT_LINES = ["Nicely done!", "Great job!", "You got it!", "Amazing!"];
 
 function XpRollup({ value, saved }: { value: number; saved: boolean }) {
-  const [display, setDisplay] = useState(0);
-
-  useEffect(() => {
-    let frame = 0;
-    if (saved || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      frame = window.requestAnimationFrame(() => setDisplay(value));
-      return () => window.cancelAnimationFrame(frame);
-    }
-
-    let startedAt: number | undefined;
-    const tick = (now: number) => {
-      startedAt ??= now;
-      const progress = Math.min((now - startedAt) / 900, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(value * eased));
-      if (progress < 1) frame = window.requestAnimationFrame(tick);
-    };
-    frame = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frame);
-  }, [saved, value]);
-
   return (
-    <span
+    <motion.span
       className="xp-rollup"
       data-testid="xp-rollup"
       aria-label={saved ? "XP saved" : `${value} XP earned`}
+      initial={{ scale: 0.85, opacity: 0.6 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={springPop}
     >
-      <span aria-hidden>⚡ {saved ? "XP saved" : `${display} XP`}</span>
-    </span>
+      <span aria-hidden>
+        ⚡ {saved ? "XP saved" : <><AnimatedNumber value={value} /> XP</>}
+      </span>
+    </motion.span>
   );
 }
 
@@ -75,6 +80,7 @@ function Celebration() {
 }
 
 export function LessonPlayer({ lessonId }: { lessonId: string }) {
+  const reduce = useReducedMotion();
   const [attempt, setAttempt] = useState<Attempt | null>(null);
   const [hearts, setHearts] = useState<number | null>(null);
   const [answer, setAnswer] = useState<Answer>("");
@@ -177,9 +183,28 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     setAttempt({ ...attempt, position: feedback.position, matched_pairs: {} }); setFeedback(null); setPairResult(null); setAnswer(""); setTokens([]);
   }
   return <main className="lesson-player">
-    <header className="lesson-header"><button className="exit-button" onClick={() => setModal("exit")} aria-label="Exit lesson">✕</button><progress aria-label="Lesson progress" max={attempt?.lesson.exercises.length || 1} value={feedback?.position ?? attempt?.position ?? 0} /><span key={heartLoss} className={`heart-count ${heartLoss ? "heart-shake" : ""}`} aria-label={`${hearts ?? "Loading"} hearts`}>♥ {hearts ?? "…"}</span></header>
+    <header className="lesson-header">
+      <button className="exit-button" onClick={() => setModal("exit")} aria-label="Exit lesson">✕</button>
+      <progress aria-label="Lesson progress" max={attempt?.lesson.exercises.length || 1} value={feedback?.position ?? attempt?.position ?? 0} />
+      <motion.span
+        key={heartLoss}
+        className={`heart-count ${heartLoss ? "heart-shake" : ""}`}
+        aria-label={`${hearts ?? "Loading"} hearts`}
+        animate={reduce || !heartLoss ? undefined : { scale: [1, 1.18, 1], rotate: [0, -8, 6, 0] }}
+        transition={{ duration: 0.45 }}
+      >
+        ♥ <AnimatedNumber value={hearts} />
+      </motion.span>
+    </header>
     {!attempt && !error && <p role="status" className="learning-message">Getting your lesson ready…</p>}
-    {payload && <section className={`exercise-area ${payload.type === "match" ? "exercise-area-matching" : ""}`}>
+    {payload && (
+      <motion.section
+        key={exercise?.id ?? attempt?.position}
+        className={`exercise-area ${payload.type === "match" ? "exercise-area-matching" : ""}`}
+        initial={reduce ? false : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={softSpring}
+      >
       {payload.type !== "match" && <p className="exercise-eyebrow">{payload.type.replaceAll("_", " ")} · {attempt!.position + 1} OF {attempt!.lesson.exercises.length}</p>}
       <h1>{payload.type === "match" ? "Tap the matching pairs" : payload.prompt}</h1>
       {payload.type !== "match" && <div className="exercise-guide"><span aria-hidden="true">🦉</span><p>{payload.sentence || "Take your time. You’ve got this!"}</p></div>}
@@ -189,16 +214,64 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
         {payload.type === "translate" && <><div className="token-answer" aria-label="Your translation">{tokens.length === 0 && <span>Tap words to build your answer</span>}{tokens.map((token, i) => <button key={i} className="word-token selected" onClick={() => setTokens(tokens.filter((_, position) => position !== i))}>{payload.tokens![token]}</button>)}</div><div className="token-bank">{payload.tokens!.map((token, i) => <button key={i} className="word-token" disabled={tokens.includes(i)} onClick={() => setTokens([...tokens, i])}>{token}</button>)}</div></>}
         {payload.type === "match" && <MatchExercise key={exercise!.id} left={payload.left!} right={payload.right!} matched={attempt?.matched_pairs ?? {}} result={pairResult} disabled={busy || !!feedback || hasPending} onPair={pair => { void check(pair); }} />}
       </fieldset>
-    </section>}
-    <footer data-testid="feedback-bar" className={`feedback-bar ${feedback ? `feedback-visible ${feedback.correct ? "correct" : "incorrect"}` : ""}`}>
+      </motion.section>
+    )}
+    <footer data-testid="feedback-bar" className={`feedback-bar ${feedback ? (feedback.correct ? "correct" : "incorrect") : ""}`}>
+      <AnimatePresence mode="wait">
+        {feedback && (
+          <motion.div
+            key={feedback.correct ? "ok" : "bad"}
+            className="feedback-motion"
+            initial={reduce ? false : { opacity: 0, y: 48 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? undefined : { opacity: 0, y: 24 }}
+            transition={slideUp}
+          >
+            {feedback.correct && <CorrectVoiceBurst message={correctLine} />}
+            {!feedback.correct && <div role="status"><h2>Let’s try that again</h2><p>Correct answer: <strong>{feedback.expected}</strong></p></div>}
+            {feedback.correct && <div role="status" className="sr-only">Correct. {correctLine}</div>}
+          </motion.div>
+        )}
+      </AnimatePresence>
       {error && <p role="alert">{error}</p>}
-      {feedback?.correct && <CorrectVoiceBurst message={correctLine} />}
-      {feedback && !feedback.correct && <div role="status"><h2>Let’s try that again</h2><p>Correct answer: <strong>{feedback.expected}</strong></p></div>}
-      {feedback?.correct && <div role="status" className="sr-only">Correct. {correctLine}</div>}
       {attempt && payload ? <button className="action-button" disabled={busy || (!feedback && !ready && !hasPending)} onClick={feedback ? next : () => { void check(); }}>{busy ? "Saving…" : feedback ? "Continue" : hasPending ? "Retry saving answer" : payload.type === "match" ? "Continue" : "Check"}</button> : error && <button className="action-button" onClick={() => setRetry(v => v + 1)}>Try again</button>}
     </footer>
-    {modal === "complete" && <Modal><Celebration /><div className="modal-art celebration-trophy">🏆</div><h1>Lesson complete!</h1><p>You’re one step closer. Keep that momentum going!</p><div className="result-summary"><XpRollup value={feedback?.xp_earned ?? 0} saved={!feedback} /><span>♥ {hearts} hearts</span></div><p className="muted">Your progress is saved. Rewards may take a moment to update.</p><Link className="action-button" href="/">Back to the path</Link></Modal>}
-    {modal === "hearts" && <Modal><div className="modal-art">💔</div><h1>Time for a little break</h1><p>You’re out of hearts. You’ll get one back every 30 minutes, up to five. Your lesson progress is saved.</p><Link className="action-button" href="/">Back to the path</Link></Modal>}
-    {modal === "exit" && <Modal><div className="modal-art">🦉</div><h1>Take a break?</h1><p>Your saved answers will be here when you come back.</p><button className="action-button" onClick={() => setModal(null)}>Keep learning</button><Link className="secondary-action" href="/">Save and exit</Link></Modal>}
+    <AnimatePresence>
+      {modal === "complete" && (
+        <Modal key="complete">
+          <Celebration />
+          <motion.div
+            className="modal-art celebration-trophy"
+            initial={reduce ? false : { scale: 0.4, y: 30, rotate: -12 }}
+            animate={{ scale: 1, y: 0, rotate: 0 }}
+            transition={springPop}
+          >
+            🏆
+          </motion.div>
+          <h1>Lesson complete!</h1>
+          <p>You’re one step closer. Keep that momentum going!</p>
+          <div className="result-summary"><XpRollup value={feedback?.xp_earned ?? 0} saved={!feedback} /><span>♥ <AnimatedNumber value={hearts} /> hearts</span></div>
+          <p className="muted">Your progress is saved. Rewards may take a moment to update.</p>
+          <Link className="action-button" href="/">Back to the path</Link>
+        </Modal>
+      )}
+      {modal === "hearts" && (
+        <Modal key="hearts">
+          <motion.div className="modal-art" initial={reduce ? false : { scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springPop}>💔</motion.div>
+          <h1>Time for a little break</h1>
+          <p>You’re out of hearts. You’ll get one back every 30 minutes, up to five. Your lesson progress is saved.</p>
+          <Link className="action-button" href="/">Back to the path</Link>
+        </Modal>
+      )}
+      {modal === "exit" && (
+        <Modal key="exit">
+          <motion.div className="modal-art" initial={reduce ? false : { scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={springPop}>🦉</motion.div>
+          <h1>Take a break?</h1>
+          <p>Your saved answers will be here when you come back.</p>
+          <button className="action-button" onClick={() => setModal(null)}>Keep learning</button>
+          <Link className="secondary-action" href="/">Save and exit</Link>
+        </Modal>
+      )}
+    </AnimatePresence>
   </main>;
 }

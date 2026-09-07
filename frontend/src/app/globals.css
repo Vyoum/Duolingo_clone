@@ -96,8 +96,7 @@ button:disabled { cursor: not-allowed; }
 .skill-group { display: flex; flex-direction: column; align-items: center; }
 .path-stop { position: relative; text-align: center; margin-bottom: 40px; width: 136px; }
 .node-ring { width: 94px; height: 94px; margin: auto; padding: 6px; border-radius: 50%; }
-.path-node { width: 82px; height: 82px; display: flex; justify-content: center; align-items: center; border: 6px solid var(--duo-bg); border-radius: 50%; font-size: 36px; font-weight: 900; transition: transform .15s; }
-.path-node:hover { transform: translateY(-3px); }
+.path-node { width: 82px; height: 82px; display: flex; justify-content: center; align-items: center; border: 6px solid var(--duo-bg); border-radius: 50%; font-size: 36px; font-weight: 900; }
 .path-node.ready { background: var(--duo-green); color: white; box-shadow: inset 0 -7px #43a000; }
 .path-node.done { background: var(--duo-green); color: white; box-shadow: inset 0 -7px #43a000; }
 .path-node.done .path-check { font-size: 40px; font-weight: 900; line-height: 1; transform: translateY(-1px); }
@@ -163,11 +162,12 @@ progress::-moz-progress-bar { background: var(--duo-green); border-radius: 20px;
   .matching-tile { min-height: 64px; padding-inline: 20px; font-size: 16px; }
 }
 .feedback-bar { position: fixed; z-index: 10; bottom: 0; left: 0; right: 0; padding: 20px max(24px, calc((100vw - 570px) / 2)); background: var(--duo-bg); border-top: 2px solid var(--duo-border); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
-.feedback-bar.feedback-visible { animation: feedback-slide-in .32s cubic-bezier(.2,.8,.2,1) both; }
+.feedback-bar .feedback-motion { margin-bottom: 14px; }
 .feedback-bar h2 { font-size: 21px; font-weight: 900; }
 .feedback-bar.correct { background: #1b382a; color: #9ce455; }
 .feedback-bar.incorrect { background: #42292e; color: #ffaaa9; }
 .feedback-bar > p { color: #ffaaa9; }
+.feedback-bar p { color: inherit; }
 .correct-voice {
   display: flex;
   align-items: center;
@@ -250,7 +250,7 @@ progress::-moz-progress-bar { background: var(--duo-green); border-radius: 20px;
   from { opacity: 0; transform: translateX(-8px) scale(.9); }
   to { opacity: 1; transform: translateX(0) scale(1); }
 }
-.lesson-modal { position: fixed; inset: 0; margin: auto; max-width: 420px; width: calc(100% - 32px); border: 2px solid var(--duo-border); border-radius: 25px; padding: 28px; background: var(--duo-bg); color: white; text-align: center; overflow: hidden; animation: completion-pop .38s cubic-bezier(.2,.9,.25,1.25) both; }
+.lesson-modal { position: fixed; inset: 0; margin: auto; max-width: 420px; width: calc(100% - 32px); border: 2px solid var(--duo-border); border-radius: 25px; padding: 28px; background: var(--duo-bg); color: white; text-align: center; overflow: hidden; }
 .lesson-modal::backdrop { background: #050e14cf; backdrop-filter: blur(5px); }
 .modal-art { position: relative; z-index: 1; font-size: 72px; margin-bottom: 15px; }
 .celebration-trophy { animation: trophy-bounce 1.15s cubic-bezier(.2,.8,.2,1) both; }
