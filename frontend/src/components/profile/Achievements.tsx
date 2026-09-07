@@ -33,7 +33,7 @@ function AchievementRow({
   return (
     <div
       className={`flex gap-3 px-4 py-4 ${
-        showBorder ? "border-b-2 border-[var(--duo-border)]" : ""
+        showBorder ? "border-b-2 border-duo-border" : ""
       }`}
     >
       <div
@@ -50,17 +50,17 @@ function AchievementRow({
       <div className="min-w-0 flex-1 pt-0.5">
         <div className="flex items-start justify-between gap-2">
           <p className="font-extrabold text-white">{item.name}</p>
-          <p className="shrink-0 text-sm font-bold text-[var(--duo-text-muted)]">
+          <p className="shrink-0 text-sm font-bold text-duo-muted">
             {item.current}/{item.target}
           </p>
         </div>
-        <div className="mt-2 h-3.5 overflow-hidden rounded-full bg-[#37464F]">
+        <div className="mt-2 h-3.5 overflow-hidden rounded-full bg-duo-border">
           <div
-            className="h-full rounded-full bg-[var(--duo-yellow)]"
+            className="h-full rounded-full bg-duo-yellow"
             style={{ width: `${pct}%` }}
           />
         </div>
-        <p className="mt-2 text-sm font-semibold text-[var(--duo-text-muted)]">
+        <p className="mt-2 text-sm font-semibold text-duo-muted">
           {item.description}
         </p>
       </div>

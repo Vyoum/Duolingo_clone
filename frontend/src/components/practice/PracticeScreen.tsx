@@ -35,7 +35,7 @@ export function PracticeScreen() {
           <p className="mt-1 max-w-[58%] text-sm font-semibold leading-snug text-white/85">
             Sharpen your ear with focused listening practice
           </p>
-          <span className="mt-5 inline-flex rounded-2xl bg-white px-5 py-2.5 text-sm font-extrabold tracking-wide text-[#6B21A8]">
+          <span className="mt-5 inline-flex rounded-2xl border-b-4 border-[#C4B5FD] bg-white px-5 py-2.5 text-sm font-extrabold tracking-wide text-[#6B21A8]">
             UNLOCK
           </span>
           <div className="pointer-events-none absolute bottom-0 right-2">
@@ -107,7 +107,7 @@ function PracticeRow({
   href?: string;
 }) {
   const className =
-    "relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-4 py-4 text-left transition hover:bg-[#1a2c32]";
+    "relative flex w-full items-center gap-4 overflow-hidden rounded-2xl border-2 border-duo-border bg-duo-bg-elevated px-4 py-4 text-left transition hover:bg-duo-surface";
 
   const body = (
     <>
@@ -117,13 +117,13 @@ function PracticeRow({
         </div>
       )}
       {badge && (
-        <span className="absolute right-3 top-3 rounded-md bg-[#37464f] px-2 py-0.5 text-[10px] font-black text-white">
+        <span className="absolute right-3 top-3 rounded-md bg-duo-border px-2 py-0.5 text-[10px] font-black text-white">
           {badge}
         </span>
       )}
       <div className="min-w-0 flex-1 pr-16">
         <h3 className="text-lg font-extrabold text-white">{title}</h3>
-        <p className="mt-1 text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+        <p className="mt-1 text-sm font-semibold leading-snug text-duo-muted">
           {description}
         </p>
       </div>

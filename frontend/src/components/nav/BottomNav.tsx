@@ -96,7 +96,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-1/2 z-50 flex h-[var(--duo-nav-height)] w-full max-w-[430px] -translate-x-1/2 items-center justify-around border-t-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-1"
+      className="fixed bottom-0 left-1/2 z-50 flex h-[var(--duo-nav-height)] w-full max-w-[430px] -translate-x-1/2 items-center justify-around border-t-2 border-duo-border bg-duo-bg px-1"
       aria-label="Main"
     >
       {items.map((item) => {
@@ -111,7 +111,7 @@ export function BottomNav() {
             aria-label={item.label}
             aria-current={active ? "page" : undefined}
             className={`flex h-14 w-14 items-center justify-center rounded-2xl transition-colors ${
-              active ? "outline outline-[3px] outline-[var(--duo-blue)]" : ""
+              active ? "outline outline-[3px] outline-duo-blue" : ""
             }`}
           >
             {item.href === "/profile" ? <ProfileIcon active={active} /> : item.icon}

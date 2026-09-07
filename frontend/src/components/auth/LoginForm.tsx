@@ -25,13 +25,13 @@ export function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-[#131f24]">
+    <div className="flex min-h-full flex-col bg-duo-bg">
       {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-5 md:px-10">
         <Link
           href="/login"
           aria-label="Close"
-          className="flex h-10 w-10 items-center justify-center text-[#afafaf] transition hover:text-white"
+          className="flex h-10 w-10 items-center justify-center text-duo-muted transition hover:text-white"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
             <path
@@ -48,7 +48,7 @@ export function LoginForm() {
             e.preventDefault();
             enterDemo();
           }}
-          className="rounded-2xl border-2 border-[#1cb0f6] px-4 py-2.5 text-sm font-extrabold tracking-wide text-[#1cb0f6] transition hover:bg-[#1cb0f6]/10"
+          className="duo-btn-outline px-4 py-2.5 text-sm"
         >
           SIGN UP
         </Link>
@@ -73,7 +73,7 @@ export function LoginForm() {
               placeholder="Email or username"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="h-[52px] w-full rounded-2xl border-2 border-[#e5e5a8] bg-[#ffffd6] px-4 text-[16px] font-bold text-[#131f24] outline-none placeholder:text-[#7a7a5c] focus:border-[#1cb0f6]"
+              className="duo-field h-[52px] px-4 text-[16px]"
             />
 
             <div className="relative">
@@ -88,7 +88,7 @@ export function LoginForm() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="h-[52px] w-full rounded-2xl border-2 border-[#e5e5a8] bg-[#ffffd6] py-3 pl-4 pr-24 text-[16px] font-bold text-[#131f24] outline-none placeholder:text-[#7a7a5c] focus:border-[#1cb0f6]"
+                className="duo-field h-[52px] py-3 pl-4 pr-24 text-[16px]"
               />
               <button
                 type="button"
@@ -100,7 +100,7 @@ export function LoginForm() {
                   }
                   setShowPassword((v) => !v);
                 }}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-extrabold tracking-wide text-[#7a9bb0] hover:text-[#1cb0f6]"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] font-extrabold tracking-wide text-duo-dim hover:text-duo-blue"
               >
                 FORGOT?
               </button>
@@ -108,23 +108,23 @@ export function LoginForm() {
 
             <button
               type="submit"
-              className="mt-2 h-[50px] w-full rounded-2xl bg-[#1cb0f6] text-[15px] font-extrabold tracking-wide text-[#131f24] shadow-[0_4px_0_#1899d6] transition active:translate-y-[2px] active:shadow-[0_2px_0_#1899d6]"
+              className="duo-btn-blue mt-2 h-[50px] w-full text-[15px]"
             >
               LOG IN
             </button>
           </form>
 
-          <p className="mt-4 text-center text-[14px] font-bold leading-snug text-[#1cb0f6]">
+          <p className="mt-4 text-center text-[14px] font-bold leading-snug text-duo-blue">
             Also, this is demo mode — just click on Log in
           </p>
 
           {/* OR divider */}
           <div className="my-7 flex items-center gap-4">
-            <div className="h-px flex-1 bg-[#37464f]" />
-            <span className="text-[14px] font-extrabold tracking-wide text-[#52656d]">
+            <div className="h-px flex-1 bg-duo-border" />
+            <span className="text-[14px] font-extrabold tracking-wide text-duo-dim">
               OR
             </span>
-            <div className="h-px flex-1 bg-[#37464f]" />
+            <div className="h-px flex-1 bg-duo-border" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -140,16 +140,16 @@ export function LoginForm() {
             />
           </div>
 
-          <footer className="mt-10 space-y-3 text-center text-[12px] font-semibold leading-relaxed text-[#52656d]">
+          <footer className="mt-10 space-y-3 text-center text-[12px] font-semibold leading-relaxed text-duo-dim">
             <p>
               By signing in to Duolingo, you agree to our{" "}
-              <span className="text-[#afafaf]">Terms</span> and{" "}
-              <span className="text-[#afafaf]">Privacy Policy</span>.
+              <span className="text-duo-muted">Terms</span> and{" "}
+              <span className="text-duo-muted">Privacy Policy</span>.
             </p>
             <p>
               This site is protected by reCAPTCHA Enterprise and the Google{" "}
-              <span className="text-[#afafaf]">Privacy Policy</span> and{" "}
-              <span className="text-[#afafaf]">Terms of Service</span> apply.
+              <span className="text-duo-muted">Privacy Policy</span> and{" "}
+              <span className="text-duo-muted">Terms of Service</span> apply.
             </p>
           </footer>
         </div>
@@ -171,7 +171,7 @@ function SocialButton({
     <button
       type="button"
       onClick={onClick}
-      className="flex h-[50px] items-center justify-center gap-2 rounded-2xl border-2 border-[#37464f] text-[13px] font-extrabold tracking-wide text-[#afafaf] transition hover:border-[#52656d] hover:text-white"
+      className="duo-btn-ghost flex h-[50px] items-center justify-center gap-2 text-[13px]"
     >
       {icon}
       {label}

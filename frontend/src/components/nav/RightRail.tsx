@@ -28,7 +28,7 @@ export function RightRail() {
       : "learn";
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[368px] shrink-0 flex-col gap-4 overflow-y-auto bg-[var(--duo-bg)] px-5 py-5">
+    <aside className="sticky top-0 flex h-screen w-[368px] shrink-0 flex-col gap-4 overflow-y-auto bg-duo-bg px-5 py-5">
       <StatsRow learner={data} />
 
       {variant === "learn" && (
@@ -64,19 +64,19 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
       aria-label="Desktop learner statistics"
     >
       <span
-        className="flex items-center gap-1.5 text-[var(--duo-yellow)]"
+        className="flex items-center gap-1.5 text-duo-yellow"
         aria-label={`Total XP: ${learner?.xp ?? "loading"}`}
         title="Total XP"
       >
         <span aria-hidden>⚡</span> <span>{learner?.xp ?? "…"}</span>
       </span>
-      <span className="flex items-center gap-1 text-[var(--duo-text-muted)]" aria-label={`Day streak: ${learner?.streak ?? "loading"}`} title="Day streak">
+      <span className="flex items-center gap-1 text-duo-orange" aria-label={`Day streak: ${learner?.streak ?? "loading"}`} title="Day streak">
         <span aria-hidden>🔥</span> {learner?.streak ?? "…"}
       </span>
-      <span className="flex items-center gap-1 text-[var(--duo-blue)]" aria-label="Gems: 132" title="Gems">
+      <span className="flex items-center gap-1 text-duo-gem" aria-label="Gems: 132" title="Gems">
         <span aria-hidden>💎</span> 132
       </span>
-      <span className="flex items-center gap-1 text-[#FF4B4B]" aria-label={`Hearts: ${learner?.hearts ?? "loading"}`} title="Hearts">
+      <span className="flex items-center gap-1 text-duo-heart" aria-label={`Hearts: ${learner?.hearts ?? "loading"}`} title="Hearts">
         <span aria-hidden>♥</span> {learner?.hearts ?? "…"}
       </span>
     </div>
@@ -85,13 +85,13 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
 
 function SuperCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
+    <section className="duo-panel p-4">
       <div className="mb-2 flex items-start justify-between gap-2">
         <SuperBadge />
         <HoloOwlMini />
       </div>
       <h3 className="text-lg font-extrabold text-white">Try Super for free</h3>
-      <p className="mt-1 text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+      <p className="mt-1 text-sm font-semibold leading-snug text-duo-muted">
         No ads, personalized practice, and unlimited Legendary!
       </p>
       <button
@@ -107,10 +107,10 @@ function SuperCard() {
 
 function LeagueCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
+    <section className="duo-panel p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-extrabold text-white">Silver League</h3>
-        <Link href="/leaderboard" className="text-sm font-extrabold text-[var(--duo-blue)]">
+        <Link href="/leaderboard" className="text-sm font-extrabold text-duo-blue">
           VIEW LEAGUE
         </Link>
       </div>
@@ -118,7 +118,7 @@ function LeagueCard() {
         <span className="text-4xl" aria-hidden>
           😴
         </span>
-        <p className="text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+        <p className="text-sm font-semibold leading-snug text-duo-muted">
           Complete a lesson to join this week&apos;s leaderboard
         </p>
       </div>
@@ -128,10 +128,10 @@ function LeagueCard() {
 
 function QuestsCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
+    <section className="duo-panel p-4">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="font-extrabold text-white">Daily Quests</h3>
-        <Link href="/quests" className="text-sm font-extrabold text-[var(--duo-blue)]">
+        <Link href="/quests" className="text-sm font-extrabold text-duo-blue">
           VIEW ALL
         </Link>
       </div>
@@ -142,7 +142,7 @@ function QuestsCard() {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-extrabold text-white">Earn 10 XP</p>
           <div className="mt-2 flex items-center gap-2">
-            <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-[#37464F]">
+            <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-duo-border">
               <span className="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold text-white/80">
                 0 / 10
               </span>
@@ -157,8 +157,8 @@ function QuestsCard() {
 
 function AdCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
-      <p className="text-xs font-bold uppercase tracking-wide text-[var(--duo-text-muted)]">
+    <section className="duo-panel p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-duo-muted">
         Advertisement
       </p>
       <p className="mt-2 text-sm font-extrabold text-white">
@@ -166,7 +166,7 @@ function AdCard() {
       </p>
       <button
         type="button"
-        className="mt-3 text-sm font-extrabold text-[var(--duo-blue)]"
+        className="mt-3 text-sm font-extrabold text-duo-blue"
         onClick={() => showToast("Advertisement link — Coming soon")}
       >
         Learn more
@@ -177,24 +177,24 @@ function AdCard() {
 
 function MonthlyBadgesCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
+    <section className="duo-panel p-4">
       <h3 className="mb-4 font-extrabold text-white">Monthly Badges</h3>
       <div className="space-y-4">
         <div className="flex gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#37464F] text-xl">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-duo-border text-xl">
             🏅
           </div>
-          <p className="text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+          <p className="text-sm font-semibold leading-snug text-duo-muted">
             Complete 20 quests to earn this month&apos;s badge
           </p>
         </div>
         <div className="flex gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#37464F] text-xl">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-duo-border text-xl">
             🎧
           </div>
           <div>
             <p className="text-sm font-extrabold text-white">Zari&apos;s Movie Binge</p>
-            <p className="text-sm font-semibold text-[var(--duo-text-muted)]">June 2025</p>
+            <p className="text-sm font-semibold text-duo-muted">June 2025</p>
           </div>
         </div>
       </div>
@@ -205,15 +205,15 @@ function MonthlyBadgesCard() {
 function StatusCard() {
   const emojis = ["😎", "🎉", "💪", "👀", "🍿", "🇩🇪", "🔥", "💚", "🎯", "📚", "✨", "🦉"];
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
+    <section className="duo-panel p-4">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="font-extrabold text-white">Set your status</h3>
-        <button type="button" className="text-sm font-extrabold text-[var(--duo-blue)]">
+        <button type="button" className="text-sm font-extrabold text-duo-blue">
           CLEAR
         </button>
       </div>
       <div className="mb-4 flex justify-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-[#37464F] text-3xl">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-duo-border text-3xl">
           🧑
         </div>
       </div>
@@ -222,7 +222,7 @@ function StatusCard() {
           <button
             key={e}
             type="button"
-            className="flex h-10 items-center justify-center rounded-xl border-2 border-[var(--duo-border)] text-lg hover:border-[var(--duo-blue)]"
+            className="flex h-10 items-center justify-center rounded-xl border-2 border-duo-border text-lg hover:border-duo-blue"
           >
             {e}
           </button>
@@ -239,7 +239,7 @@ function FooterLinks() {
         <button
           key={link}
           type="button"
-          className="text-[11px] font-extrabold tracking-wide text-[var(--duo-text-muted)] hover:text-white"
+          className="text-[11px] font-extrabold tracking-wide text-duo-muted hover:text-white"
         >
           {link}
         </button>

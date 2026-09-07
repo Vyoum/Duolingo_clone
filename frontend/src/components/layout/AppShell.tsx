@@ -10,7 +10,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* Desktop / tablet web view */}
-      <div className="hidden min-h-screen bg-[var(--duo-bg)] lg:flex">
+      <div className="hidden min-h-screen bg-duo-bg lg:flex">
         <LeftSidebar />
         <main className="flex min-w-0 flex-1 justify-center overflow-y-auto">
           <div className="w-full max-w-[680px] px-6 py-6">{children}</div>
@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile view */}
-      <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col bg-[var(--duo-bg)] lg:hidden">
+      <div className="mx-auto flex min-h-full w-full max-w-[430px] flex-col bg-duo-bg lg:hidden">
         <div className="flex-1 pb-[calc(var(--duo-nav-height)+12px)]">{children}</div>
         <BottomNav />
       </div>

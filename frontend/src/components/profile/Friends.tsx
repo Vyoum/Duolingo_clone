@@ -27,20 +27,20 @@ export function FriendSuggestions({ suggestions }: { suggestions: Friend[] }) {
           <div
             key={friend.id}
             className={`flex items-center gap-3 px-4 py-3 ${
-              index < items.length - 1 ? "border-b-2 border-[var(--duo-border)]" : ""
+              index < items.length - 1 ? "border-b-2 border-duo-border" : ""
             }`}
           >
             <AvatarBubble name={friend.name} hue={friend.avatarHue} />
             <div className="min-w-0 flex-1">
               <p className="truncate font-extrabold text-white">{friend.name}</p>
-              <p className="truncate text-sm font-semibold text-[var(--duo-text-muted)]">
+              <p className="truncate text-sm font-semibold text-duo-muted">
                 {friend.caption}
               </p>
             </div>
             <button
               type="button"
               aria-label={`Add ${friend.name}`}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--duo-blue)] text-xl font-black text-[#131f24]"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-duo-blue text-xl font-black text-duo-bg"
             >
               +
             </button>
@@ -48,7 +48,7 @@ export function FriendSuggestions({ suggestions }: { suggestions: Friend[] }) {
               type="button"
               aria-label={`Dismiss ${friend.name}`}
               onClick={() => setItems((prev) => prev.filter((f) => f.id !== friend.id))}
-              className="px-1 text-lg font-bold text-[var(--duo-text-muted)]"
+              className="px-1 text-lg font-bold text-duo-muted"
             >
               ✕
             </button>
@@ -56,10 +56,10 @@ export function FriendSuggestions({ suggestions }: { suggestions: Friend[] }) {
         ))}
         <button
           type="button"
-          className="flex w-full items-center justify-between border-t-2 border-[var(--duo-border)] px-4 py-3.5 text-left font-extrabold text-white"
+          className="flex w-full items-center justify-between border-t-2 border-duo-border px-4 py-3.5 text-left font-extrabold text-white"
         >
           View all
-          <span className="text-[var(--duo-text-muted)]">›</span>
+          <span className="text-duo-muted">›</span>
         </button>
       </div>
     </section>
@@ -75,12 +75,12 @@ export function FriendsSection({ following }: { following: Friend[] }) {
     <section className="mx-4 mt-8">
       <div className="mb-3 flex items-center justify-between">
         <h3 className="text-2xl font-extrabold text-white">Friends</h3>
-        <button type="button" className="text-sm font-extrabold tracking-wide text-[var(--duo-blue)]">
+        <button type="button" className="text-sm font-extrabold tracking-wide text-duo-blue">
           ADD FRIENDS
         </button>
       </div>
 
-      <div className="mb-3 flex border-b-2 border-[var(--duo-border)]">
+      <div className="mb-3 flex border-b-2 border-duo-border">
         {(
           [
             ["following", "FOLLOWING"],
@@ -93,8 +93,8 @@ export function FriendsSection({ following }: { following: Friend[] }) {
             onClick={() => setTab(key)}
             className={`flex-1 py-3 text-sm font-extrabold tracking-wide ${
               tab === key
-                ? "border-b-4 border-[var(--duo-blue)] text-[var(--duo-blue)]"
-                : "text-[var(--duo-text-muted)]"
+                ? "border-b-4 border-duo-blue text-duo-blue"
+                : "text-duo-muted"
             }`}
           >
             {label}
@@ -110,14 +110,14 @@ export function FriendsSection({ following }: { following: Friend[] }) {
                 key={friend.id}
                 className={`flex items-center gap-3 px-4 py-3 ${
                   index < preview.length - 1
-                    ? "border-b-2 border-[var(--duo-border)]"
+                    ? "border-b-2 border-duo-border"
                     : ""
                 }`}
               >
                 <AvatarBubble name={friend.name} hue={friend.avatarHue} />
                 <div className="min-w-0">
                   <p className="truncate font-extrabold text-white">{friend.name}</p>
-                  <p className="text-sm font-semibold text-[var(--duo-text-muted)]">
+                  <p className="text-sm font-semibold text-duo-muted">
                     {friend.xp.toLocaleString()} XP
                   </p>
                 </div>
@@ -126,15 +126,15 @@ export function FriendsSection({ following }: { following: Friend[] }) {
             {remaining > 0 && (
               <button
                 type="button"
-                className="flex w-full items-center justify-between border-t-2 border-[var(--duo-border)] px-4 py-3.5 font-extrabold text-white"
+                className="flex w-full items-center justify-between border-t-2 border-duo-border px-4 py-3.5 font-extrabold text-white"
               >
                 View {remaining} more
-                <span className="text-[var(--duo-text-muted)]">›</span>
+                <span className="text-duo-muted">›</span>
               </button>
             )}
           </>
         ) : (
-          <p className="px-4 py-8 text-center font-bold text-[var(--duo-text-muted)]">
+          <p className="px-4 py-8 text-center font-bold text-duo-muted">
             No followers yet
           </p>
         )}
@@ -158,7 +158,7 @@ export function InviteFriendsCard() {
         </svg>
         <div>
           <h4 className="text-lg font-extrabold text-white">Invite friends</h4>
-          <p className="mt-1 text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+          <p className="mt-1 text-sm font-semibold leading-snug text-duo-muted">
             Tell your friends it&apos;s free and fun to learn a language on Duolingo!
           </p>
         </div>

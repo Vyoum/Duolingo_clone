@@ -32,12 +32,12 @@ export function ServiceStartup({ children }: { children: React.ReactNode }) {
   if (state === "ready") return children;
   return (
     <main className="flex min-h-screen items-center justify-center p-6">
-      <div className="max-w-md rounded-2xl border-2 border-[var(--duo-border)] p-8 text-center">
+      <div className="duo-card max-w-md p-8 text-center">
         <h1 className="text-2xl font-extrabold">{state === "failed" ? "Taking a little longer" : "Getting your lessons ready…"}</h1>
-        <p role="status" aria-live="polite" className="mt-4">
+        <p role="status" aria-live="polite" className="mt-4 text-duo-muted">
           {state === "failed" ? "We couldn’t connect yet. Please try again." : "The learning services are waking up. This can take up to two minutes after inactivity."}
         </p>
-        {state === "failed" && <button className="mt-6 rounded-xl bg-[#58cc02] px-6 py-3 font-bold text-white" onClick={() => { setState("waiting"); setAttempt(value => value + 1); }}>Retry</button>}
+        {state === "failed" && <button className="duo-btn-green mt-6" onClick={() => { setState("waiting"); setAttempt(value => value + 1); }}>Retry</button>}
       </div>
     </main>
   );

@@ -17,8 +17,8 @@ export function LeftSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[248px] shrink-0 flex-col border-r-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-4 py-6">
-      <Link href="/" className="mb-6 px-3 text-[32px] font-black leading-none tracking-tight text-[#58CC02]">
+    <aside className="sticky top-0 flex h-screen w-[248px] shrink-0 flex-col border-r-2 border-duo-border bg-duo-bg px-4 py-6">
+      <Link href="/" className="mb-6 px-3 text-[32px] font-black leading-none tracking-tight text-duo-green">
         duolingo
       </Link>
 
@@ -32,8 +32,8 @@ export function LeftSidebar() {
               aria-current={active ? "page" : undefined}
               className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-[15px] font-extrabold tracking-wide transition ${
                 active
-                  ? "border-2 border-[var(--duo-blue)] bg-[#202f36] text-[var(--duo-blue)]"
-                  : "border-2 border-transparent text-white hover:bg-[#1a2c32]"
+                  ? "border-2 border-duo-blue bg-duo-surface text-duo-blue"
+                  : "border-2 border-transparent text-white hover:bg-duo-bg-elevated"
               }`}
             >
               <NavIcon label={item.label} active={active} />
@@ -44,7 +44,7 @@ export function LeftSidebar() {
 
         <button
           type="button"
-          className="flex items-center gap-3 rounded-2xl border-2 border-transparent px-3 py-3 text-left text-[15px] font-extrabold tracking-wide text-white hover:bg-[#1a2c32]"
+          className="flex items-center gap-3 rounded-2xl border-2 border-transparent px-3 py-3 text-left text-[15px] font-extrabold tracking-wide text-white hover:bg-duo-bg-elevated"
           onClick={() => showToast("More — Coming soon")}
         >
           <MoreIcon />
@@ -52,7 +52,7 @@ export function LeftSidebar() {
         </button>
       </nav>
 
-      <div className="mt-4 rounded-2xl border-2 border-[var(--duo-border)] p-4">
+      <div className="duo-panel mt-4 p-4">
         <div className="mb-2 flex items-start gap-2">
           <span className="text-2xl" aria-hidden>
             ♞
@@ -64,7 +64,7 @@ export function LeftSidebar() {
         <button
           type="button"
           onClick={() => showToast("Chess — Coming soon")}
-          className="text-sm font-extrabold tracking-wide text-[var(--duo-blue)]"
+          className="text-sm font-extrabold tracking-wide text-duo-blue"
         >
           TRY CHESS
         </button>

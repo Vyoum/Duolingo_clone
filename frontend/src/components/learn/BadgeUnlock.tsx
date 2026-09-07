@@ -97,8 +97,8 @@ export function AchievementBadges({ items }: { items: Goal[] }) {
             <div
               className="badge-medal"
               style={{
-                background: unlocked ? meta.color : "#2d4049",
-                boxShadow: unlocked ? `inset 0 -6px ${meta.accent}` : "inset 0 -6px #24343c",
+                background: unlocked ? meta.color : "var(--duo-locked)",
+                boxShadow: unlocked ? `inset 0 -6px ${meta.accent}` : "inset 0 -6px var(--duo-border-muted)",
               }}
             >
               <span aria-hidden>{unlocked ? meta.icon : "🔒"}</span>

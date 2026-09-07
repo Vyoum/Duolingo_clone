@@ -22,7 +22,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${nunito.variable} h-full`}>
-      <body className="min-h-full bg-[var(--duo-bg)] font-sans text-[var(--duo-text)] antialiased">
+      <body className="min-h-full bg-duo-bg font-sans text-duo-text antialiased">
         {process.env.WARMUP_ENABLED === "true" ? (
           <ServiceStartup><AppProviders>{children}</AppProviders></ServiceStartup>
         ) : <AppProviders>{children}</AppProviders>}

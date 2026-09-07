@@ -50,7 +50,7 @@ function StatCard({
         <p className="truncate text-lg font-extrabold leading-tight text-white">
           {value}
         </p>
-        <p className="truncate text-sm font-bold text-[var(--duo-text-muted)]">
+        <p className="truncate text-sm font-bold text-duo-muted">
           {label}
         </p>
       </div>

@@ -4,12 +4,12 @@ import { useState } from "react";
 
 export function ProfileHeader() {
   return (
-    <header className="sticky top-0 z-40 flex h-14 items-center justify-center border-b-2 border-[var(--duo-border)] bg-[var(--duo-bg)]">
+    <header className="sticky top-0 z-40 flex h-14 items-center justify-center border-b-2 border-duo-border bg-duo-bg">
       <h1 className="text-lg font-extrabold tracking-wide text-white">Profile</h1>
       <button
         type="button"
         aria-label="Settings"
-        className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--duo-text-muted)]"
+        className="absolute right-4 top-1/2 -translate-y-1/2 text-duo-muted"
       >
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
@@ -58,7 +58,7 @@ export function AvatarCard() {
       <button
         type="button"
         aria-label="Edit profile"
-        className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-[var(--duo-border)] bg-white shadow"
+        className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full border-2 border-duo-border bg-white shadow"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
           <path
@@ -89,11 +89,11 @@ export function IdentityRow({
     <div className="mx-4 mt-4 flex items-start justify-between gap-3">
       <div className="min-w-0">
         <h2 className="truncate text-2xl font-extrabold text-white">{displayName}</h2>
-        <p className="text-[15px] font-semibold text-[var(--duo-text-muted)]">
+        <p className="text-[15px] font-semibold text-duo-muted">
           {username}
         </p>
         <p className="mt-2 text-sm font-bold text-white">{joined}</p>
-        <button type="button" className="mt-1 text-sm font-extrabold text-[var(--duo-blue)]">
+        <button type="button" className="mt-1 text-sm font-extrabold text-duo-blue">
           {friendsCount} Friends
         </button>
       </div>
@@ -108,7 +108,7 @@ export function IdentityRow({
 function FlagBadge({ code, label }: { code: "de" | "fr"; label: string }) {
   return (
     <div
-      className="h-10 w-12 overflow-hidden rounded-xl border-2 border-[var(--duo-border)]"
+      className="h-10 w-12 overflow-hidden rounded-xl border-2 border-duo-border"
       title={label}
       aria-label={label}
     >
@@ -139,7 +139,7 @@ export function LinkedInBanner() {
         type="button"
         aria-label="Dismiss"
         onClick={() => setHidden(true)}
-        className="absolute right-3 top-3 text-[var(--duo-text-muted)]"
+        className="absolute right-3 top-3 text-duo-muted"
       >
         ✕
       </button>

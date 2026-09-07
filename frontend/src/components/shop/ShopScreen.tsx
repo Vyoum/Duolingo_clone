@@ -31,7 +31,7 @@ export function ShopScreen() {
           <button
             type="button"
             onClick={() => toastComingSoon("Super free trial")}
-            className="mt-4 w-full rounded-2xl bg-white py-3.5 text-sm font-extrabold tracking-wide text-[#131f24] shadow-[0_4px_0_#C4B5FD]"
+            className="mt-4 w-full rounded-2xl border-b-4 border-[#C4B5FD] bg-white py-3.5 text-sm font-extrabold tracking-wide text-duo-bg transition active:translate-y-[2px] active:border-b-2"
           >
             START MY FREE 7 DAYS
           </button>
@@ -44,7 +44,7 @@ export function ShopScreen() {
           title="Refill Hearts"
           description="Get full hearts so you can worry less about making mistakes in a lesson"
           action={
-            <span className="rounded-2xl border-2 border-[var(--duo-border)] px-4 py-2 text-sm font-extrabold tracking-wide text-[var(--duo-text-muted)]">
+            <span className="rounded-2xl border-2 border-duo-border px-4 py-2 text-sm font-extrabold tracking-wide text-duo-muted">
               FULL
             </span>
           }
@@ -58,7 +58,7 @@ export function ShopScreen() {
             <button
               type="button"
               onClick={() => toastComingSoon("Unlimited Hearts")}
-              className="rounded-2xl border-2 border-[var(--duo-border)] px-3 py-2 text-sm font-extrabold tracking-wide text-[#F472B6]"
+              className="rounded-2xl border-2 border-b-4 border-duo-border px-3 py-2 text-sm font-extrabold tracking-wide text-[#F472B6]"
             >
               FREE TRIAL
             </button>
@@ -76,7 +76,7 @@ export function ShopScreen() {
             <button
               type="button"
               onClick={() => toastComingSoon("Streak Freeze")}
-              className="flex items-center gap-1 rounded-2xl border-2 border-[var(--duo-border)] px-3 py-2 text-sm font-extrabold tracking-wide text-white"
+              className="flex items-center gap-1 rounded-2xl border-2 border-b-4 border-duo-border px-3 py-2 text-sm font-extrabold tracking-wide text-white"
             >
               GET FOR:
               <GemTiny />
@@ -93,7 +93,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-2 mt-2 flex items-center gap-3">
       <h2 className="text-2xl font-extrabold text-white">{children}</h2>
-      <div className="h-0.5 flex-1 bg-[var(--duo-border)]" />
+      <div className="h-0.5 flex-1 bg-duo-border" />
     </div>
   );
 }
@@ -112,17 +112,17 @@ function ShopRow({
   meta?: string;
 }) {
   return (
-    <div className="flex items-start gap-3 border-b-2 border-[var(--duo-border)] py-5">
+    <div className="flex items-start gap-3 border-b-2 border-duo-border py-5">
       <div className="shrink-0 pt-1">{icon}</div>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="font-extrabold text-white">{title}</h3>
-            <p className="mt-1 text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+            <p className="mt-1 text-sm font-semibold leading-snug text-duo-muted">
               {description}
             </p>
             {meta && (
-              <span className="mt-2 inline-block rounded-full bg-[var(--duo-surface)] px-2.5 py-1 text-[11px] font-extrabold tracking-wide text-[var(--duo-text-muted)]">
+              <span className="mt-2 inline-block rounded-full bg-duo-surface px-2.5 py-1 text-[11px] font-extrabold tracking-wide text-duo-muted">
                 {meta}
               </span>
             )}
