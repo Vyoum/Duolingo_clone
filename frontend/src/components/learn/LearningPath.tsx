@@ -1,15 +1,48 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
-import { useApi, type Course } from "@/lib/api";
+import { useApi, type Course, type LessonNode } from "@/lib/api";
 import { motion, softSpring, springPop } from "@/lib/motion";
+import { showToast } from "@/lib/toast";
 
-/** Gentle S-curve offsets (px) — left / center / right alternation. */
-const PATH_X = [0, -58, -78, -42, 0, 42, 78, 58];
+/** Center → left → center → right so even nodes line up with the first. */
+const PATH_X = [0, -72, 0, 72, 0, -72, 0, 72];
 
 const CONNECTOR_W = 220;
-const CONNECTOR_H = 36;
+const CONNECTOR_H = 32;
+
+const UNIT_THEMES = [
+  { bg: "#136b8b", edge: "#0d4e68", mist: "#b9e9ff", soft: "#d7f3ff" },
+  { bg: "#655099", edge: "#45386a", mist: "#dccfff", soft: "#ebe2ff" },
+  { bg: "#2b6e4f", edge: "#1d4d37", mist: "#b8f0d0", soft: "#d7f7e6" },
+];
+
+const SKILL_GLYPH: Record<string, string> = {
+  wave: "👋",
+  apple: "🍎",
+  plane: "✈️",
+  people: "👨‍👩‍👧",
+  hash: "#",
+};
+
+type LessonStop = {
+  kind: "lesson";
+  skill: Course["units"][number]["skills"][number];
+  lesson: LessonNode;
+  li: number;
+  globalIndex: number;
+};
+
+type ChestStop = {
+  kind: "chest";
+  id: string;
+  unlocked: boolean;
+  globalIndex: number;
+};
+
+type PathStop = LessonStop | ChestStop;
 
 function connectorD(fromX: number, toX: number) {
   const cx = CONNECTOR_W / 2;
@@ -26,9 +59,97 @@ function unitSubtitle(unit: Course["units"][number]) {
   return `${names.slice(0, 2).join(" · ")} · +${names.length - 2} more`;
 }
 
+function buildStops(data: Course): { units: { unit: Course["units"][number]; unitIndex: number; stops: PathStop[] }[]; flat: PathStop[] } {
+  let globalIndex = 0;
+  const units = data.units.map((unit, unitIndex) => {
+    const stops: PathStop[] = [];
+    unit.skills.forEach((skill, skillIndex) => {
+      skill.lessons.forEach((lesson, li) => {
+        stops.push({ kind: "lesson", skill, lesson, li, globalIndex: globalIndex++ });
+      });
+      if (skillIndex < unit.skills.length - 1) {
+        const prev = skill.lessons[skill.lessons.length - 1];
+        stops.push({
+          kind: "chest",
+          id: `chest-${skill.id}`,
+          unlocked: Boolean(prev?.completed),
+          globalIndex: globalIndex++,
+        });
+      }
+    });
+    return { unit, unitIndex, stops };
+  });
+  return { units, flat: units.flatMap((u) => u.stops) };
+}
+
+function PathOwl({ side }: { side: "left" | "right" }) {
+  return (
+    <div className={`path-owl path-owl-${side}`} aria-hidden>
+      <svg viewBox="0 0 72 72" width="64" height="64">
+        <ellipse cx="36" cy="40" rx="22" ry="24" fill="#58CC02" />
+        <ellipse cx="36" cy="42" rx="14" ry="15" fill="#89E219" />
+        <circle cx="28" cy="34" r="8" fill="white" />
+        <circle cx="44" cy="34" r="8" fill="white" />
+        <circle cx="29" cy="35" r="3.2" fill="#131F24" />
+        <circle cx="45" cy="35" r="3.2" fill="#131F24" />
+        <path d="M36 40l-4 5h8l-4-5Z" fill="#FF9600" />
+        <path d="M18 22c6-10 14-12 18-8 4-4 12-2 18 8-7 2-12 4-18 4s-11-2-18-4Z" fill="#58CC02" />
+      </svg>
+    </div>
+  );
+}
+
 export function LearningPath() {
   const { data, error, reload } = useApi<Course>("path");
   const reduce = useReducedMotion();
+  const [activeUnit, setActiveUnit] = useState(0);
+  const [currentInView, setCurrentInView] = useState(true);
+  const currentRef = useRef<HTMLDivElement | null>(null);
+  const sectionRefs = useRef<(HTMLElement | null)[]>([]);
+
+  const built = useMemo(() => (data ? buildStops(data) : null), [data]);
+
+  const currentLessonId = useMemo(() => {
+    if (!built) return null;
+    const hit = built.flat.find(
+      (s) => s.kind === "lesson" && s.lesson.unlocked && !s.lesson.completed,
+    );
+    return hit && hit.kind === "lesson" ? hit.lesson.id : null;
+  }, [built]);
+
+  useEffect(() => {
+    if (!built) return;
+    const nodes = sectionRefs.current.filter(Boolean) as HTMLElement[];
+    if (!nodes.length) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (!visible) return;
+        const idx = Number((visible.target as HTMLElement).dataset.unitIndex);
+        if (!Number.isNaN(idx)) setActiveUnit(idx);
+      },
+      { rootMargin: "-30% 0px -45% 0px", threshold: [0.15, 0.4, 0.7] },
+    );
+    nodes.forEach((n) => io.observe(n));
+    return () => io.disconnect();
+  }, [built]);
+
+  useEffect(() => {
+    const el = currentRef.current;
+    if (!el) {
+      setCurrentInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      ([entry]) => setCurrentInView(entry.isIntersecting),
+      { rootMargin: "-20% 0px -35% 0px", threshold: 0.2 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [currentLessonId, built]);
+
   if (error) {
     return (
       <div className="learning-message" role="alert">
@@ -39,7 +160,7 @@ export function LearningPath() {
       </div>
     );
   }
-  if (!data) {
+  if (!data || !built) {
     return (
       <p className="learning-message" role="status">
         Loading your learning path…
@@ -47,190 +168,275 @@ export function LearningPath() {
     );
   }
 
-  let index = 0;
   const complete = data.units.every((u) =>
     u.skills.every((s) => s.lessons.every((l) => l.completed)),
   );
+  const theme = UNIT_THEMES[activeUnit % UNIT_THEMES.length];
+  const activeMeta = built.units[activeUnit] ?? built.units[0];
+  const doneInUnit = activeMeta.stops.filter(
+    (s) => s.kind === "lesson" && s.lesson.completed,
+  ).length;
+  const totalInUnit = activeMeta.stops.filter((s) => s.kind === "lesson").length;
 
   return (
     <div className="learning-path">
+      <div
+        className="path-sticky-bar"
+        style={{
+          background: theme.bg,
+          borderBottomColor: theme.edge,
+        }}
+      >
+        <div className="path-sticky-copy">
+          <p style={{ color: theme.mist }}>
+            SECTION 1 · UNIT {activeUnit + 1}
+            {totalInUnit > 0 ? ` · ${doneInUnit}/${totalInUnit}` : ""}
+          </p>
+          <h2 style={{ color: "#fff" }}>{activeMeta.unit.title}</h2>
+          <p className="unit-subtitle" style={{ color: theme.soft }}>
+            {unitSubtitle(activeMeta.unit)}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="guidebook-btn"
+          onClick={() => showToast("Guidebook — Coming soon")}
+        >
+          GUIDEBOOK
+        </button>
+      </div>
+
       {complete && (
         <div className="duo-card learning-message">
           🏆 Course complete! Revisit any lesson for 5 practice XP.
         </div>
       )}
-      {data.units.map((unit, unitIndex) => {
-        const stops = unit.skills.flatMap((skill) =>
-          skill.lessons.map((lesson, li) => ({ skill, lesson, li })),
-        );
-        return (
-          <section key={unit.id} aria-labelledby={`unit-${unit.id}`}>
-            <header className={`unit-banner unit-${unitIndex % 2}`}>
-              <div>
-                <p>
-                  SECTION 1 · UNIT {unitIndex + 1}
-                </p>
-                <h2 id={`unit-${unit.id}`}>{unit.title}</h2>
-                <p className="unit-subtitle">{unitSubtitle(unit)}</p>
-              </div>
-              <span aria-hidden="true">{unitIndex === 0 ? "☀" : "✈"}</span>
-            </header>
 
-            <div className="path-track">
-              {stops.map(({ skill, lesson, li }, stopLocal) => {
-                const stopIndex = index++;
-                const offset = PATH_X[stopIndex % PATH_X.length];
-                const nextOffset =
-                  stopLocal < stops.length - 1
-                    ? PATH_X[(stopIndex + 1) % PATH_X.length]
-                    : null;
-                const crowns = skill.crowns;
-                const crownShare = skill.lessons.length
-                  ? crowns / skill.lessons.length
-                  : 0;
+      {built.units.map(({ unit, unitIndex, stops }) => (
+        <section
+          key={unit.id}
+          data-unit-index={unitIndex}
+          ref={(el) => {
+            sectionRefs.current[unitIndex] = el;
+          }}
+          aria-label={`Unit ${unitIndex + 1}: ${unit.title}`}
+          className="path-unit"
+        >
+          <div className="path-unit-sentinel" aria-hidden />
+          <div className="path-track">
+            {stops.map((stop, stopLocal) => {
+              const offset = PATH_X[stop.globalIndex % PATH_X.length];
+              const next = stops[stopLocal + 1];
+              const nextOffset = next
+                ? PATH_X[next.globalIndex % PATH_X.length]
+                : null;
+              const owlSide = offset <= 0 ? "right" : "left";
 
+              if (stop.kind === "chest") {
                 return (
-                  <div key={lesson.id} className="path-stop-wrap">
+                  <div key={stop.id} className="path-stop-wrap">
                     <motion.div
                       className="path-stop"
                       style={{ x: offset }}
-                      initial={reduce ? false : { opacity: 0, y: 20, scale: 0.86 }}
+                      initial={reduce ? false : { opacity: 0, y: 16, scale: 0.9 }}
                       whileInView={reduce ? undefined : { opacity: 1, y: 0, scale: 1 }}
                       viewport={{ once: true, amount: 0.4 }}
-                      transition={{
-                        ...softSpring,
-                        delay: Math.min(stopIndex * 0.035, 0.3),
-                      }}
+                      transition={softSpring}
                     >
-                      {lesson.unlocked && !lesson.completed && (
-                        <motion.span
-                          className="start-bubble"
-                          initial={reduce ? false : { opacity: 0, y: 8, scale: 0.8 }}
-                          animate={
-                            reduce
-                              ? undefined
-                              : { opacity: 1, y: [0, -4, 0], scale: 1 }
-                          }
-                          transition={{
-                            ...softSpring,
-                            delay: 0.2,
-                            y: {
-                              repeat: Infinity,
-                              duration: 1.8,
-                              ease: "easeInOut",
-                            },
-                          }}
-                        >
-                          START
-                        </motion.span>
-                      )}
-                      <motion.div
-                        className="node-ring"
-                        style={{
-                          background: `conic-gradient(var(--duo-yellow) ${crownShare * 360}deg, var(--duo-border) 0deg)`,
-                        }}
-                        animate={
-                          reduce || crowns === 0
-                            ? undefined
-                            : { scale: [1, 1.06, 1] }
+                      <button
+                        type="button"
+                        className={`path-chest ${stop.unlocked ? "openable" : "locked"}`}
+                        disabled={!stop.unlocked}
+                        aria-label={
+                          stop.unlocked
+                            ? "Treasure chest, open"
+                            : "Treasure chest, locked"
                         }
-                        transition={{ duration: 0.55, delay: 0.15 }}
+                        onClick={() =>
+                          showToast(
+                            stop.unlocked
+                              ? "Chest reward — Coming soon"
+                              : "Finish the lessons above to open this chest",
+                          )
+                        }
                       >
-                        {lesson.unlocked ? (
-                          <motion.div
-                            whileHover={reduce ? undefined : { y: -3, scale: 1.04 }}
-                            whileTap={reduce ? undefined : { scale: 0.94 }}
-                            transition={springPop}
-                          >
-                            <Link
-                              href={`/lesson/${lesson.id}`}
-                              className={`path-node ${lesson.completed ? "done" : "ready"}`}
-                              aria-label={`${skill.title}, lesson ${li + 1}${lesson.completed ? ", completed, practice again" : ", start"}`}
-                            >
-                              {lesson.completed ? (
-                                <motion.span
-                                  className="path-check"
-                                  aria-hidden
-                                  initial={
-                                    reduce
-                                      ? false
-                                      : { scale: 0.4, rotate: -20, opacity: 0 }
-                                  }
-                                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
-                                  transition={springPop}
-                                >
-                                  ✓
-                                </motion.span>
-                              ) : (
-                                <motion.span
-                                  aria-hidden
-                                  animate={
-                                    reduce
-                                      ? undefined
-                                      : { scale: [1, 1.12, 1] }
-                                  }
-                                  transition={{
-                                    duration: 1.6,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                  }}
-                                >
-                                  ★
-                                </motion.span>
-                              )}
-                            </Link>
-                          </motion.div>
-                        ) : (
-                          <button
-                            className="path-node locked"
-                            disabled
-                            aria-label={`${skill.title}, lesson ${li + 1}, locked`}
-                          >
-                            🔒
-                          </button>
-                        )}
-                      </motion.div>
-                      <p>
-                        {skill.title}
-                        {skill.lessons.length > 1 ? ` ${li + 1}` : ""}
-                      </p>
-                      <small>
-                        {lesson.completed
-                          ? "COMPLETE"
-                          : lesson.unlocked
-                            ? `${lesson.xp_reward} XP`
-                            : "LOCKED"}
-                      </small>
+                        <span aria-hidden>{stop.unlocked ? "🎁" : "📦"}</span>
+                      </button>
+                      <p className="path-label-muted">Chest</p>
                     </motion.div>
-
                     {nextOffset !== null && (
-                      <svg
-                        className="path-connector"
-                        width={CONNECTOR_W}
-                        height={CONNECTOR_H}
-                        viewBox={`0 0 ${CONNECTOR_W} ${CONNECTOR_H}`}
-                        aria-hidden
-                      >
-                        <path
-                          d={connectorD(offset, nextOffset)}
-                          fill="none"
-                          stroke="var(--duo-path-line)"
-                          strokeWidth="8"
-                          strokeLinecap="round"
-                        />
-                      </svg>
+                      <Connector from={offset} to={nextOffset} />
                     )}
                   </div>
                 );
-              })}
-            </div>
-          </section>
-        );
-      })}
+              }
+
+              const { skill, lesson, li } = stop;
+              const isCurrent = lesson.id === currentLessonId;
+              const crowns = skill.crowns;
+              const crownShare = skill.lessons.length
+                ? crowns / skill.lessons.length
+                : 0;
+              const glyph =
+                SKILL_GLYPH[skill.icon] ?? (lesson.completed ? "✓" : "★");
+              const showLabel = isCurrent || li === 0;
+
+              return (
+                <div key={lesson.id} className="path-stop-wrap">
+                  <motion.div
+                    ref={isCurrent ? currentRef : undefined}
+                    className={`path-stop ${isCurrent ? "is-current" : ""}`}
+                    style={{ x: offset }}
+                    initial={reduce ? false : { opacity: 0, y: 20, scale: 0.86 }}
+                    whileInView={
+                      reduce ? undefined : { opacity: 1, y: 0, scale: 1 }
+                    }
+                    viewport={{ once: true, amount: 0.4 }}
+                    transition={{
+                      ...softSpring,
+                      delay: Math.min(stop.globalIndex * 0.03, 0.28),
+                    }}
+                  >
+                    {isCurrent && <PathOwl side={owlSide} />}
+                    {isCurrent && (
+                      <motion.span
+                        className="start-bubble"
+                        initial={reduce ? false : { opacity: 0, y: 8, scale: 0.8 }}
+                        animate={
+                          reduce
+                            ? undefined
+                            : { opacity: 1, y: [0, -4, 0], scale: 1 }
+                        }
+                        transition={{
+                          ...softSpring,
+                          delay: 0.15,
+                          y: {
+                            repeat: Infinity,
+                            duration: 1.8,
+                            ease: "easeInOut",
+                          },
+                        }}
+                      >
+                        START
+                      </motion.span>
+                    )}
+                    <motion.div
+                      className="node-ring"
+                      style={{
+                        background: `conic-gradient(var(--duo-yellow) ${crownShare * 360}deg, var(--duo-border) 0deg)`,
+                      }}
+                    >
+                      {lesson.unlocked ? (
+                        <motion.div
+                          whileHover={
+                            reduce ? undefined : { y: -3, scale: 1.04 }
+                          }
+                          whileTap={reduce ? undefined : { scale: 0.94 }}
+                          transition={springPop}
+                        >
+                          <Link
+                            href={`/lesson/${lesson.id}`}
+                            className={`path-node ${lesson.completed ? "done" : isCurrent ? "ready current" : "ready"}`}
+                            aria-label={`${skill.title}, lesson ${li + 1}${lesson.completed ? ", completed, practice again" : ", start"}`}
+                          >
+                            {lesson.completed ? (
+                              <span className="path-check" aria-hidden>
+                                ✓
+                              </span>
+                            ) : (
+                              <motion.span
+                                aria-hidden
+                                animate={
+                                  reduce || !isCurrent
+                                    ? undefined
+                                    : { scale: [1, 1.12, 1] }
+                                }
+                                transition={{
+                                  duration: 1.6,
+                                  repeat: Infinity,
+                                  ease: "easeInOut",
+                                }}
+                              >
+                                {glyph}
+                              </motion.span>
+                            )}
+                          </Link>
+                        </motion.div>
+                      ) : (
+                        <button
+                          className="path-node locked"
+                          disabled
+                          aria-label={`${skill.title}, lesson ${li + 1}, locked`}
+                        >
+                          🔒
+                        </button>
+                      )}
+                    </motion.div>
+                    {showLabel && (
+                      <>
+                        <p>
+                          {skill.title}
+                          {skill.lessons.length > 1 ? ` ${li + 1}` : ""}
+                        </p>
+                        <small>
+                          {lesson.completed
+                            ? "COMPLETE"
+                            : lesson.unlocked
+                              ? `${lesson.xp_reward} XP`
+                              : "LOCKED"}
+                        </small>
+                      </>
+                    )}
+                  </motion.div>
+                  {nextOffset !== null && (
+                    <Connector from={offset} to={nextOffset} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+
+      {!currentInView && currentLessonId && (
+        <button
+          type="button"
+          className="jump-here-btn"
+          onClick={() =>
+            currentRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            })
+          }
+        >
+          JUMP HERE
+        </button>
+      )}
+
       <div className="path-finish">
         <span aria-hidden="true">🏆</span>
         <p>Great things start with a small step.</p>
       </div>
     </div>
+  );
+}
+
+function Connector({ from, to }: { from: number; to: number }) {
+  return (
+    <svg
+      className="path-connector"
+      width={CONNECTOR_W}
+      height={CONNECTOR_H}
+      viewBox={`0 0 ${CONNECTOR_W} ${CONNECTOR_H}`}
+      aria-hidden
+    >
+      <path
+        d={connectorD(from, to)}
+        fill="none"
+        stroke="var(--duo-path-line)"
+        strokeWidth="8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }

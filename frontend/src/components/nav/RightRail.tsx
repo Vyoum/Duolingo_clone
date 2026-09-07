@@ -35,8 +35,8 @@ export function RightRail() {
       {variant === "learn" && (
         <>
           <SuperCard />
-          <LeagueCard />
-          <QuestsCard />
+          <LeagueCard learner={data} />
+          <QuestsCard learner={data} />
           <AdCard />
         </>
       )}
@@ -71,8 +71,8 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
       >
         <span aria-hidden>⚡</span> <AnimatedNumber value={learner?.xp} />
       </span>
-      <span className="flex items-center gap-1 text-[var(--duo-text-muted)]" aria-label={`Day streak: ${learner?.streak ?? "loading"}`} title="Day streak">
-        <span aria-hidden>🔥</span> <AnimatedNumber value={learner?.streak} />
+      <span className="flex items-center gap-1 text-[var(--duo-text-muted)]" aria-label={`Day streak: ${learner?.streak ?? 0}`} title="Day streak">
+        <span aria-hidden>🔥</span> <AnimatedNumber value={learner?.streak ?? 0} />
       </span>
       <span className="flex items-center gap-1 text-[var(--duo-blue)]" aria-label="Gems: 132" title="Gems">
         <span aria-hidden>💎</span> 132
@@ -106,7 +106,9 @@ function SuperCard() {
   );
 }
 
-function LeagueCard() {
+function LeagueCard({ learner }: { learner: Learner | null | undefined }) {
+  const xp = learner?.xp ?? 0;
+  const joined = (learner?.lessons_completed ?? 0) > 0 || xp > 0;
   return (
     <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -115,19 +117,38 @@ function LeagueCard() {
           VIEW LEAGUE
         </Link>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-4xl" aria-hidden>
-          😴
-        </span>
-        <p className="text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
-          Complete a lesson to join this week&apos;s leaderboard
-        </p>
-      </div>
+      {joined ? (
+        <div className="flex items-center gap-3">
+          <span className="text-3xl" aria-hidden>
+            🥈
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-extrabold text-white">You&apos;re in the league!</p>
+            <p className="text-sm font-semibold text-[var(--duo-text-muted)]">
+              <AnimatedNumber value={xp} /> XP this week
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3">
+          <span className="text-4xl" aria-hidden>
+            😴
+          </span>
+          <p className="text-sm font-semibold leading-snug text-[var(--duo-text-muted)]">
+            Complete a lesson to join this week&apos;s leaderboard
+          </p>
+        </div>
+      )}
     </section>
   );
 }
 
-function QuestsCard() {
+function QuestsCard({ learner }: { learner: Learner | null | undefined }) {
+  const quest = learner?.quests?.[0];
+  const current = quest?.current ?? Math.min(learner?.xp ?? 0, 10);
+  const target = quest?.target ?? 10;
+  const label = quest?.name ?? "Earn 10 XP";
+  const pct = Math.min(100, Math.round((current / Math.max(target, 1)) * 100));
   return (
     <section className="rounded-2xl border-2 border-[var(--duo-border)] p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -141,11 +162,15 @@ function QuestsCard() {
           ⚡
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-extrabold text-white">Earn 10 XP</p>
+          <p className="text-sm font-extrabold text-white">{label}</p>
           <div className="mt-2 flex items-center gap-2">
             <div className="relative h-4 flex-1 overflow-hidden rounded-full bg-[#37464F]">
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold text-white/80">
-                0 / 10
+              <div
+                className="absolute inset-y-0 left-0 rounded-full bg-[var(--duo-yellow)]"
+                style={{ width: `${pct}%` }}
+              />
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-extrabold text-white">
+                {current} / {target}
               </span>
             </div>
             <span aria-hidden>🧰</span>
