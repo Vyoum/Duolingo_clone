@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api, ApiError, type Attempt, type Feedback, type Learner } from "@/lib/api";
+import { playCorrectChime, playIncorrectThud } from "@/lib/feedback-sfx";
 import { MatchExercise, type PairResult } from "./MatchExercise";
 
 type Answer = string | number | string[] | Record<string, string>;
@@ -11,6 +12,26 @@ function Modal({ children }: { children: React.ReactNode }) {
   useEffect(() => { ref.current?.showModal(); }, []);
   return <dialog ref={ref} className="lesson-modal" onCancel={e => e.preventDefault()}>{children}</dialog>;
 }
+
+/** Duo-style speaking mascot that appears with the correct feedback bar. */
+function CorrectVoiceBurst({ message }: { message: string }) {
+  return (
+    <div className="correct-voice" data-testid="correct-voice" aria-hidden>
+      <div className="correct-voice-owl">
+        <span className="correct-voice-face">🦉</span>
+        <span className="correct-voice-waves">
+          <i /><i /><i />
+        </span>
+      </div>
+      <div className="correct-voice-copy">
+        <p className="correct-voice-bubble">{message}</p>
+        <small>Keep going!</small>
+      </div>
+    </div>
+  );
+}
+
+const CORRECT_LINES = ["Nicely done!", "Great job!", "You got it!", "Amazing!"];
 
 function XpRollup({ value, saved }: { value: number; saved: boolean }) {
   const [display, setDisplay] = useState(0);
@@ -64,11 +85,21 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
   const [hasPending, setHasPending] = useState(false);
   const [pairResult, setPairResult] = useState<PairResult | null>(null);
   const [heartLoss, setHeartLoss] = useState(0);
+  const [correctLine, setCorrectLine] = useState(CORRECT_LINES[0]);
   const [modal, setModal] = useState<"complete" | "hearts" | "exit" | null>(null);
   const [retry, setRetry] = useState(0);
   const pending = useRef<{ key: string; body: { exercise_id: string; answer: Answer; match_pair?: boolean } } | null>(null);
   const submitting = useRef(false);
   const storageKey = `lesson-start:${lessonId}`;
+
+  function celebrate(correct: boolean) {
+    if (correct) {
+      setCorrectLine(CORRECT_LINES[Math.floor(Math.random() * CORRECT_LINES.length)]);
+      playCorrectChime();
+    } else {
+      playIncorrectThud();
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -114,6 +145,7 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     try {
       const submitted = pending.current;
       const result = await api<Feedback>(`attempts/${attempt.id}/answers`, submitted.body, submitted.key);
+      celebrate(result.correct);
       if (hearts !== null && result.hearts < hearts) setHeartLoss(n => n + 1);
       setHearts(result.hearts);
       if (submitted.body.match_pair) {
@@ -155,7 +187,9 @@ export function LessonPlayer({ lessonId }: { lessonId: string }) {
     </section>}
     <footer data-testid="feedback-bar" className={`feedback-bar ${feedback ? `feedback-visible ${feedback.correct ? "correct" : "incorrect"}` : ""}`}>
       {error && <p role="alert">{error}</p>}
-      {feedback && <div role="status"><h2>{feedback.correct ? "✓ Nicely done!" : "Let’s try that again"}</h2>{!feedback.correct && <p>Correct answer: <strong>{feedback.expected}</strong></p>}</div>}
+      {feedback?.correct && <CorrectVoiceBurst message={correctLine} />}
+      {feedback && !feedback.correct && <div role="status"><h2>Let’s try that again</h2><p>Correct answer: <strong>{feedback.expected}</strong></p></div>}
+      {feedback?.correct && <div role="status" className="sr-only">Correct. {correctLine}</div>}
       {attempt && payload ? <button className="action-button" disabled={busy || (!feedback && !ready && !hasPending)} onClick={feedback ? next : () => { void check(); }}>{busy ? "Saving…" : feedback ? "Continue" : hasPending ? "Retry saving answer" : payload.type === "match" ? "Continue" : "Check"}</button> : error && <button className="action-button" onClick={() => setRetry(v => v + 1)}>Try again</button>}
     </footer>
     {modal === "complete" && <Modal><Celebration /><div className="modal-art celebration-trophy">🏆</div><h1>Lesson complete!</h1><p>You’re one step closer. Keep that momentum going!</p><div className="result-summary"><XpRollup value={feedback?.xp_earned ?? 0} saved={!feedback} /><span>♥ {hearts} hearts</span></div><p className="muted">Your progress is saved. Rewards may take a moment to update.</p><Link className="action-button" href="/">Back to the path</Link></Modal>}

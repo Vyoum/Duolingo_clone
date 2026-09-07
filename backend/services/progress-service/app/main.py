@@ -15,6 +15,13 @@ from duolingo_shared.runtime import CONTENT_URL, GAME_URL, REDIS_URL, request, t
 from .grading import grade, public_lesson
 
 DB = os.getenv('DB_PATH', 'data/progress.db')
+SEED_DEMO_LEARNER = os.getenv('SEED_DEMO_LEARNER', '').lower() in {'1', 'true', 'yes'}
+DEMO_USER = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
+# Matches content-service seed lesson IDs (Greetings 1 + 2).
+DEMO_LESSONS = (
+    '44444444-4444-4444-4444-444444444401',
+    '44444444-4444-4444-4444-444444444402',
+)
 log = logging.getLogger(__name__)
 
 
@@ -28,6 +35,22 @@ def initialize():
         db.execute('CREATE TABLE IF NOT EXISTS completions (user_id TEXT NOT NULL, lesson_id TEXT NOT NULL, PRIMARY KEY(user_id,lesson_id))')
         db.execute('CREATE TABLE IF NOT EXISTS outbox (id TEXT PRIMARY KEY, payload TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 0)')
         db.execute('CREATE TABLE IF NOT EXISTS matched_pairs (attempt_id TEXT NOT NULL REFERENCES attempts(id), exercise_id TEXT NOT NULL, left_word TEXT NOT NULL, right_word TEXT NOT NULL, PRIMARY KEY(attempt_id,exercise_id,left_word), UNIQUE(attempt_id,exercise_id,right_word))')
+        db.execute('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
+    if SEED_DEMO_LEARNER:
+        seed_demo_learner()
+
+
+def seed_demo_learner():
+    """Give the fixed demo user two completed Greetings lessons (idempotent)."""
+    with transaction(DB) as db:
+        if db.execute('SELECT 1 FROM meta WHERE key=?', ('demo_learner_seeded',)).fetchone():
+            return
+        existing = db.execute('SELECT COUNT(*) FROM completions WHERE user_id=?', (DEMO_USER,)).fetchone()[0]
+        if existing == 0:
+            for lesson_id in DEMO_LESSONS:
+                db.execute('INSERT OR IGNORE INTO completions VALUES(?,?)', (DEMO_USER, lesson_id))
+            log.info('Seeded demo learner completions for %s', DEMO_USER)
+        db.execute('INSERT INTO meta VALUES(?,?)', ('demo_learner_seeded', '1'))
 
 
 def publish_once(client):

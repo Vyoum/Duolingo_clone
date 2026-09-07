@@ -45,6 +45,7 @@ services:
       CONTENT_URL: http://content:8001
       GAME_URL: http://gamification:8000
       REDIS_URL: redis://redis:6379/0
+      SEED_DEMO_LEARNER: 'true'
     volumes:
       - progress-data:/data
     depends_on:
@@ -58,6 +59,7 @@ services:
       dockerfile: backend/services/gamification-service/Dockerfile
     environment:
       REDIS_URL: redis://redis:6379/0
+      SEED_DEMO_LEARNER: 'true'
     volumes:
       - gamification-data:/data
     depends_on:

@@ -52,6 +52,8 @@ test("UI renders five exercise types, restores progress, feedback, and completio
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.getByRole("button", { name: /hola/ }).click();
   await page.getByRole("button", { name: "Check", exact: true }).click();
+  await expect(page.getByTestId("correct-voice")).toBeVisible();
+  await expect(page.getByTestId("feedback-bar")).toHaveClass(/correct/);
   await page.getByRole("button", { name: "Continue", exact: true }).click();
   await page.reload();
   await expect(page.getByRole("heading", { name: "Translate good morning" })).toBeVisible();

@@ -19,7 +19,7 @@ export function LearningPath() {
           return <div key={lesson.id} className="path-stop" style={{ transform: `translateX(${offset}px)` }}>
             {lesson.unlocked && !lesson.completed && <span className="start-bubble">START</span>}
             <div className="node-ring" style={{ background: `conic-gradient(var(--duo-yellow) ${skill.crowns / skill.lessons.length * 360}deg, var(--duo-border) 0deg)` }}>
-              {lesson.unlocked ? <Link href={`/lesson/${lesson.id}`} className={`path-node ${lesson.completed ? "done" : "ready"}`} aria-label={`${skill.title}, lesson ${li + 1}${lesson.completed ? ", completed, practice again" : ", start"}`}>{lesson.completed ? "♛" : "★"}</Link> : <button className="path-node locked" disabled aria-label={`${skill.title}, lesson ${li + 1}, locked`}>🔒</button>}
+              {lesson.unlocked ? <Link href={`/lesson/${lesson.id}`} className={`path-node ${lesson.completed ? "done" : "ready"}`} aria-label={`${skill.title}, lesson ${li + 1}${lesson.completed ? ", completed, practice again" : ", start"}`}>{lesson.completed ? <span className="path-check" aria-hidden>✓</span> : "★"}</Link> : <button className="path-node locked" disabled aria-label={`${skill.title}, lesson ${li + 1}, locked`}>🔒</button>}
             </div>
             <p>{skill.title}{skill.lessons.length > 1 ? ` ${li + 1}` : ""}</p><small>{lesson.completed ? "COMPLETE" : lesson.unlocked ? `${lesson.xp_reward} XP` : "LOCKED"}</small>
           </div>;

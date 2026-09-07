@@ -15,6 +15,8 @@ from duolingo_shared import LessonCompletedEvent, LESSON_COMPLETED_STREAM, GAMIF
 from duolingo_shared.runtime import REDIS_URL, transaction
 
 DB = os.getenv('DB_PATH', 'data/gamification.db')
+SEED_DEMO_LEARNER = os.getenv('SEED_DEMO_LEARNER', '').lower() in {'1', 'true', 'yes'}
+DEMO_USER = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa'
 HEART_SECONDS = 1800
 log = logging.getLogger(__name__)
 client = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_timeout=5)
@@ -25,6 +27,41 @@ def initialize():
         db.execute('CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, xp INTEGER NOT NULL DEFAULT 0, hearts INTEGER NOT NULL DEFAULT 5 CHECK(hearts BETWEEN 0 AND 5), heart_at REAL NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS events_processed (id TEXT PRIMARY KEY, attempt_id TEXT UNIQUE NOT NULL, user_id TEXT NOT NULL REFERENCES users(id), day TEXT NOT NULL, xp INTEGER NOT NULL)')
         db.execute('CREATE TABLE IF NOT EXISTS heart_operations (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, cost INTEGER NOT NULL, fingerprint TEXT NOT NULL, response TEXT NOT NULL)')
+        db.execute('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)')
+    if SEED_DEMO_LEARNER:
+        seed_demo_learner()
+
+
+def seed_demo_learner():
+    """Seed XP, streak history, and leaderboard score for the fixed demo user."""
+    with transaction(DB) as db:
+        if db.execute('SELECT 1 FROM meta WHERE key=?', ('demo_learner_seeded',)).fetchone():
+            return
+        existing = db.execute('SELECT COUNT(*) FROM events_processed WHERE user_id=?', (DEMO_USER,)).fetchone()[0]
+        if existing == 0:
+            now = time.time()
+            today = datetime.now(timezone.utc).date()
+            yesterday = (today - timedelta(days=1)).isoformat()
+            earlier = (today - timedelta(days=2)).isoformat()
+            db.execute('INSERT OR IGNORE INTO users(id,xp,hearts,heart_at) VALUES(?,?,?,?)', (DEMO_USER, 0, 5, now))
+            # Stable IDs so restarts never double-apply rewards.
+            rows = [
+                ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb01', 'cccccccc-cccc-cccc-cccc-cccccccccc01', earlier, 10),
+                ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbb02', 'cccccccc-cccc-cccc-cccc-cccccccccc02', yesterday, 10),
+            ]
+            for event_id, attempt_id, day, xp in rows:
+                inserted = db.execute(
+                    'INSERT OR IGNORE INTO events_processed VALUES(?,?,?,?,?)',
+                    (event_id, attempt_id, DEMO_USER, day, xp),
+                ).rowcount
+                if inserted:
+                    db.execute('UPDATE users SET xp=xp+? WHERE id=?', (xp, DEMO_USER))
+            log.info('Seeded demo learner rewards for %s', DEMO_USER)
+        db.execute('INSERT INTO meta VALUES(?,?)', ('demo_learner_seeded', '1'))
+    try:
+        sync_board()
+    except Exception:
+        log.exception('Demo learner leaderboard sync skipped until Redis is ready')
 
 
 def user_row(db, user, now=None):
