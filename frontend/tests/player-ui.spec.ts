@@ -287,6 +287,33 @@ test("listening practice plays normal and slow audio and has a no-audio fallback
   await expect(page.getByRole("button", { name: "Play Spanish phrase", exact: true })).toBeDisabled();
 });
 
+test("placeholder actions use dismissible, self-expiring app toasts", async ({ page }) => {
+  await page.route("**/api/v1/me", route => route.fulfill({ json: { hearts: 5, xp: 20, streak: 2, achievements: [], quests: [] } }));
+  await page.goto("/practice");
+  const notices = page.getByLabel("Notifications");
+  await page.getByRole("button", { name: /Mistakes/ }).click();
+  const first = notices.getByRole("status").filter({ hasText: "Mistakes — Coming soon" });
+  await expect(first).toBeVisible();
+  await first.getByRole("button", { name: "Dismiss notification" }).click();
+  await expect(first).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Stories/ }).click();
+  const second = notices.getByRole("status").filter({ hasText: "Stories — Coming soon" });
+  await expect(second).toBeVisible();
+  await expect(second).toHaveCount(0, { timeout: 5_000 });
+
+  await page.evaluate(() => {
+    for (const message of ["One", "Two", "Three", "Four"]) {
+      window.dispatchEvent(new CustomEvent("duo-toast", {
+        detail: { message, tone: "info", duration: 8_000 },
+      }));
+    }
+  });
+  await expect(notices.getByRole("status")).toHaveCount(3);
+  await expect(notices.getByRole("status").filter({ hasText: "One" })).toHaveCount(0);
+  await expect(notices.getByRole("status").filter({ hasText: "Four" })).toBeVisible();
+});
+
 for (const width of [390, 1440]) {
   test(`matching tiles handle selection, mistakes, and retry safely at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });

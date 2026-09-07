@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SuperBadge } from "@/components/layout/TopStatsBar";
 import { useApi, type Learner } from "@/lib/api";
+import { showToast } from "@/lib/toast";
 
 const FOOTER_LINKS = [
   "ABOUT",
@@ -95,7 +96,7 @@ function SuperCard() {
       </p>
       <button
         type="button"
-        onClick={() => window.alert("Super — Coming soon")}
+        onClick={() => showToast("Super — Coming soon")}
         className="duo-btn-blue mt-4 w-full py-3 text-sm"
       >
         TRY 1 WEEK FREE
@@ -166,7 +167,7 @@ function AdCard() {
       <button
         type="button"
         className="mt-3 text-sm font-extrabold text-[var(--duo-blue)]"
-        onClick={() => window.alert("Ad placeholder")}
+        onClick={() => showToast("Advertisement link — Coming soon")}
       >
         Learn more
       </button>

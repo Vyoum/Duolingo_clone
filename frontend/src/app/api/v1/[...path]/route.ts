@@ -2,7 +2,10 @@ import type { NextRequest } from "next/server";
 
 async function proxy(request: NextRequest, context: { params: Promise<{ path: string[] }> }) {
   const { path } = await context.params;
-  const gateway = process.env.GATEWAY_URL || "http://localhost:8000";
+  const gateway = (process.env.GATEWAY_URL || (process.env.VERCEL ? "" : "http://localhost:8000")).replace(/\/$/, "");
+  if (!gateway) {
+    return Response.json({ detail: "GATEWAY_URL is not set. Add it in Vercel env vars." }, { status: 503 });
+  }
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const key = request.headers.get("Idempotency-Key");
   if (key) headers["Idempotency-Key"] = key;

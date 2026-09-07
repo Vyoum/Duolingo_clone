@@ -441,6 +441,62 @@ progress::-moz-progress-bar { background: var(--duo-green); border-radius: 20px;
 .speak-complete p { color: #afc2ca; line-height: 1.6; }
 .speak-complete .muted { font-size: 12px; margin-top: 8px; }
 .listen-speakers { display:flex; align-items:center; justify-content:center; gap:14px; margin:38px 0 28px; }.listen-play { width:104px; height:104px; border-radius:26px; background:var(--duo-blue); box-shadow:inset 0 -8px #1899d6; font-size:48px; }.listen-slow { min-height:58px; padding:12px 18px; border:2px solid var(--duo-blue); border-radius:16px; color:#7dd9ff; font-weight:900; }.listen-play:disabled,.listen-slow:disabled { opacity:.45; }.listen-fallback { display:grid; gap:8px; margin:24px 0; padding:18px; border:2px solid var(--duo-border); border-radius:16px; text-align:center; color:#afc2ca; }.listen-fallback strong { color:#ffcf70; }.listen-fallback b { color:white; font-size:25px; }
+.toast-viewport {
+  position: fixed;
+  z-index: 80;
+  top: 20px;
+  right: 20px;
+  display: grid;
+  gap: 10px;
+  width: min(390px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.duo-toast {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 12px 14px;
+  border: 2px solid #49606a;
+  border-bottom-width: 5px;
+  border-radius: 18px;
+  background: #20343d;
+  color: white;
+  box-shadow: 0 14px 35px #050e1470;
+  pointer-events: auto;
+  animation: toast-enter 0.3s cubic-bezier(0.2, 0.85, 0.25, 1.15) both;
+}
+.toast-success { border-color: #4f8f2c; background: #193b22; }
+.toast-error { border-color: #a73d3d; background: #482222; }
+.toast-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  border-radius: 50%;
+  background: #2d4b58;
+  font-size: 19px;
+  font-weight: 900;
+}
+.toast-success .toast-icon { background: var(--duo-green); color: #17320a; }
+.toast-error .toast-icon { background: var(--duo-heart); }
+.toast-message { flex: 1; line-height: 1.35; font-weight: 800; }
+.duo-toast button { min-width: 38px; min-height: 38px; color: #afc2ca; font-weight: 900; }
+.duo-toast button:hover { color: white; }
+@media (max-width: 640px) {
+  .toast-viewport {
+    top: auto;
+    right: 16px;
+    bottom: calc(var(--duo-nav-height) + 16px);
+    left: 16px;
+    width: auto;
+  }
+}
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateX(28px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
 @keyframes speak-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.06); }

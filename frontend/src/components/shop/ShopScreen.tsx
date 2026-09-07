@@ -1,9 +1,10 @@
 "use client";
 
 import { SuperBadge, TopStatsBar } from "@/components/layout/TopStatsBar";
+import { showToast } from "@/lib/toast";
 
 function toastComingSoon(label: string) {
-  window.alert(`${label} — Coming soon`);
+  showToast(`${label} — Coming soon`);
 }
 
 export function ShopScreen() {

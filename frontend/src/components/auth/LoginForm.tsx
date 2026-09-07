@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { showToast } from "@/lib/toast";
 
 const DEMO_COOKIE = "duo_demo_session=1; path=/; max-age=604800; SameSite=Lax";
 
@@ -94,7 +95,7 @@ export function LoginForm() {
                 onClick={() => {
                   // Demo: toggle visibility; real Duo opens a reset flow on FORGOT?
                   if (password.length === 0) {
-                    window.alert("Password reset — Coming soon (demo mode)");
+                    showToast("Password reset — Coming soon in demo mode");
                     return;
                   }
                   setShowPassword((v) => !v);

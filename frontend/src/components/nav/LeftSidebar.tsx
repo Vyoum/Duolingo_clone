@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { showToast } from "@/lib/toast";
 
 const NAV = [
   { href: "/", label: "LEARN", match: (p: string) => p === "/" },
@@ -44,7 +45,7 @@ export function LeftSidebar() {
         <button
           type="button"
           className="flex items-center gap-3 rounded-2xl border-2 border-transparent px-3 py-3 text-left text-[15px] font-extrabold tracking-wide text-white hover:bg-[#1a2c32]"
-          onClick={() => window.alert("More — Coming soon")}
+          onClick={() => showToast("More — Coming soon")}
         >
           <MoreIcon />
           MORE
@@ -62,7 +63,7 @@ export function LeftSidebar() {
         </div>
         <button
           type="button"
-          onClick={() => window.alert("Chess — Coming soon")}
+          onClick={() => showToast("Chess — Coming soon")}
           className="text-sm font-extrabold tracking-wide text-[var(--duo-blue)]"
         >
           TRY CHESS

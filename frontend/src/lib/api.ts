@@ -12,14 +12,27 @@ export type Feedback = { correct: boolean; expected: string; position: number; c
 export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
 }
+function errorDetail(data: unknown, fallback: string) {
+  if (data && typeof data === "object" && "detail" in data && typeof data.detail === "string") {
+    return data.detail;
+  }
+  return fallback;
+}
+
 export async function api<T>(path: string, body?: unknown, key?: string): Promise<T> {
   const response = await fetch(`/api/v1/${path}`, {
     method: body === undefined ? "GET" : "POST", cache: "no-store",
     headers: { "Content-Type": "application/json", ...(key ? { "Idempotency-Key": key } : {}) },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  const data = await response.json();
-  if (!response.ok) throw new ApiError(typeof data.detail === "string" ? data.detail : "Could not save your answer. Please retry.", response.status);
+  const text = await response.text();
+  let data: unknown = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    throw new ApiError("Cannot reach the learning service. Check GATEWAY_URL and try again.", response.status || 503);
+  }
+  if (!response.ok) throw new ApiError(errorDetail(data, "Could not save your answer. Please retry."), response.status);
   return data as T;
 }
 export function useApi<T>(path: string, poll = false) {
