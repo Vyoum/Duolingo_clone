@@ -17,12 +17,12 @@ export function LeftSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[248px] shrink-0 flex-col border-r-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-4 py-6">
+    <aside className="desktop-sidebar sticky top-0 flex h-screen w-[248px] shrink-0 flex-col border-r-2 border-[var(--duo-border)] bg-[var(--duo-bg)] px-4 py-6">
       <Link href="/" className="mb-6 px-3 text-[32px] font-black leading-none tracking-tight text-[#58CC02]">
         duolingo
       </Link>
 
-      <nav className="flex flex-1 flex-col gap-1.5" aria-label="Main">
+      <nav className="flex flex-col gap-1.5" aria-label="Main">
         {NAV.map((item) => {
           const active = item.match(pathname);
           return (
@@ -52,15 +52,16 @@ export function LeftSidebar() {
         </button>
       </nav>
 
-      <div className="mt-4 rounded-2xl border-2 border-[var(--duo-border)] p-4">
-        <div className="mb-2 flex items-start gap-2">
-          <span className="text-2xl" aria-hidden>
-            ♞
+      <div className="chess-promo mt-4 rounded-2xl border-2 border-[var(--duo-border)] p-4">
+        <div className="mb-2 flex flex-col items-center gap-3">
+          <span className="text-4xl" aria-hidden>
+            ♞♟
           </span>
           <p className="text-sm font-bold leading-snug text-white">
-            Want to learn chess? Duolingo makes it easy!
+            Want to learn chess?
           </p>
         </div>
+        <p className="mb-5 text-center text-[var(--duo-text-muted)]">Duolingo makes it easy!</p>
         <button
           type="button"
           onClick={() => showToast("Chess — Coming soon")}

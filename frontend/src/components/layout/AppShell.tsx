@@ -10,10 +10,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       {/* Desktop / tablet web view */}
-      <div className="hidden min-h-screen bg-[var(--duo-bg)] lg:flex">
+      <div className="desktop-learning-shell hidden min-h-screen bg-[var(--duo-bg)] lg:flex">
         <LeftSidebar />
-        <main className="flex min-w-0 flex-1 justify-center overflow-y-auto">
-          <div className="w-full max-w-[680px] px-6 py-6">{children}</div>
+        <main className="desktop-learning-main flex min-w-0 flex-1 justify-center">
+          <div className="desktop-learning-content w-full max-w-[780px] px-6 py-6">{children}</div>
         </main>
         <RightRail />
       </div>

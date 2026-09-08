@@ -40,12 +40,10 @@ export function AnimatedNumber({
 
   useEffect(() => {
     if (value == null) {
-      setDisplay(fallback);
       return;
     }
     if (reduce) {
       motionValue.set(value);
-      setDisplay(String(Math.round(value)));
       return;
     }
     const controls = animate(motionValue, value, {
@@ -61,7 +59,7 @@ export function AnimatedNumber({
 
   return (
     <span className={className} style={{ fontVariantNumeric: "tabular-nums" }}>
-      {display}
+      {value == null ? fallback : reduce ? String(Math.round(value)) : display}
     </span>
   );
 }

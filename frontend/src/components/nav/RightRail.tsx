@@ -29,7 +29,7 @@ export function RightRail() {
       : "learn";
 
   return (
-    <aside className="sticky top-0 flex h-screen w-[420px] shrink-0 flex-col gap-5 overflow-y-auto bg-[var(--duo-bg)] px-6 py-6">
+    <aside className="desktop-right-rail sticky top-0 flex h-screen w-[420px] shrink-0 flex-col gap-5 overflow-y-auto bg-[var(--duo-bg)] px-6 py-6">
       <StatsRow learner={data} />
 
       {variant === "learn" && (
@@ -69,7 +69,7 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
         aria-label={`Total XP: ${learner?.xp ?? "loading"}`}
         title="Total XP"
       >
-        <span aria-hidden>⚡</span> <AnimatedNumber value={learner?.xp} />
+        <span className="course-flag" aria-hidden>🇪🇸</span> <AnimatedNumber value={learner?.xp} />
       </span>
       <span className="flex items-center gap-1 text-[var(--duo-text-muted)]" aria-label={`Day streak: ${learner?.streak ?? 0}`} title="Day streak">
         <span aria-hidden>🔥</span> <AnimatedNumber value={learner?.streak ?? 0} />
@@ -86,7 +86,7 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
 
 function SuperCard() {
   return (
-    <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
+    <section className="super-promo rounded-2xl border-2 border-[var(--duo-border)] p-6">
       <div className="mb-2 flex items-start justify-between gap-2">
         <SuperBadge />
         <HoloOwlMini />
@@ -125,7 +125,7 @@ function LeagueCard({ learner }: { learner: Learner | null | undefined }) {
           <div className="min-w-0 flex-1">
             <p className="text-base font-extrabold text-white">You&apos;re in the league!</p>
             <p className="text-base font-semibold text-[var(--duo-text-muted)]">
-              <AnimatedNumber value={xp} /> XP this week
+              <AnimatedNumber value={xp} /> total XP
             </p>
           </div>
         </div>
@@ -184,19 +184,11 @@ function QuestsCard({ learner }: { learner: Learner | null | undefined }) {
 function AdCard() {
   return (
     <section className="rounded-2xl border-2 border-[var(--duo-border)] p-6">
-      <p className="text-xs font-bold uppercase tracking-wide text-[var(--duo-text-muted)]">
-        Advertisement
-      </p>
-      <p className="mt-3 text-base font-extrabold text-white">
-        Get Photoshop for ₹733.96/month
-      </p>
-      <button
-        type="button"
-        className="mt-4 text-base font-extrabold text-[var(--duo-blue)]"
-        onClick={() => showToast("Advertisement link — Coming soon")}
-      >
-        Learn more
-      </button>
+      <div className="discovery-card">
+        <h3>Discover more</h3>
+        <Link href="/practice">Explore language practice <span aria-hidden>›</span></Link>
+        <Link href="/practice/listen">Build your listening skills <span aria-hidden>›</span></Link>
+      </div>
     </section>
   );
 }

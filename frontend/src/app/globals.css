@@ -680,3 +680,82 @@ progress::-moz-progress-bar { background: var(--duo-green); border-radius: 20px;
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Reference home layout: open winding path, sky-blue milestones, quiet rails. */
+.path-sticky-bar { border-radius: 14px; border-bottom: 0; box-shadow: none; padding: 18px 16px; min-height: 88px; }
+.path-sticky-copy > p:first-child { font-size: 14px; letter-spacing: 0; }
+.path-sticky-bar h2 { font-size: 22px; margin-top: 8px; }
+.guidebook-btn { background: transparent; border-color: #1494c9; border-bottom-width: 4px; display: flex; align-items: center; gap: 10px; }
+.guidebook-btn > span { font-size: 26px; line-height: 1; }
+.path-track { padding-top: 24px; padding-bottom: 30px; }
+.path-stop-wrap { min-height: 102px; }
+.path-connector { visibility: hidden; height: 16px; }
+.path-stop > p, .path-stop > small { position: absolute; width: 190px; left: -35px; opacity: 0; pointer-events: none; z-index: 4; }
+.path-stop:hover > p, .path-stop:focus-within > p { opacity: 1; background: var(--duo-bg); border-radius: 8px; padding: 4px; }
+.path-stop small { display: none; }
+.path-node { width: 70px; height: 64px; border: 0; border-radius: 50%; font-size: 30px; position: relative; }
+.path-node.done, .path-node.ready, .path-node.ready.current { background: #19b2ef; box-shadow: 0 7px 0 #148bbb; color: white; }
+.path-node.done::before { content: ''; position: absolute; inset: 6px; border-radius: 50%; background: repeating-linear-gradient(135deg, transparent 0 12px, #ffffff26 12px 25px, transparent 25px 34px); pointer-events: none; }
+.path-node.done .path-check { font-size: 42px; position: relative; }
+.node-ring { width: 80px; height: 80px; padding: 5px; }
+.path-node.locked { background: #37464f; box-shadow: 0 7px 0 #28363d; }
+.path-chest, .path-chest.openable, .path-chest.locked { background: transparent; box-shadow: none; border: 0; width: 80px; height: 80px; margin: auto; }
+.path-chest.locked { filter: saturate(.45); }
+.path-owl { display: none; }
+.path-scenery { position: absolute; width: 145px; pointer-events: none; }
+.path-scenery.camp { top: 110px; left: calc(50% + 52px); }
+.path-scenery.tennis { top: 390px; right: calc(50% + 55px); width: 135px; }
+.path-finish { margin-top: 24px; }
+.super-promo { position: relative; padding-top: 18px; }
+.super-promo > div:first-child { height: 32px; }
+.super-promo > div:first-child > svg { position: absolute; width: 100px; height: 100px; right: 12px; top: 16px; }
+.super-promo h3 { position: relative; max-width: 70%; }
+.super-promo p { max-width: 85%; min-height: 62px; line-height: 1.5; color: #c8d3d8; }
+.super-promo button { background: #4548ff; border-color: #3924de; box-shadow: 0 4px 0 #3924de; color: white; }
+.super-promo > div:first-child > span { font-size: 17px; transform: skew(-10deg); }
+.course-flag { font-size: 28px; }
+.chess-promo { text-align: center; padding: 24px 12px; }
+.chess-promo p.font-bold { font-size: 18px; }
+.discovery-card { background: white; color: #505459; border-radius: 4px; overflow: hidden; }
+.discovery-card h3 { padding: 12px 20px; font-size: 19px; font-weight: 900; background: #e8f0ff; }
+.discovery-card a { display: flex; justify-content: space-between; gap: 8px; padding: 16px 20px; border-top: 1px solid #dce0e5; }
+@media (min-width: 1024px) {
+  .desktop-sidebar { width: 17.4vw; min-width: 208px; padding: 28px 16px; }
+  .desktop-sidebar > a { font-size: 34px; margin-bottom: 34px; }
+  .desktop-sidebar nav { gap: 8px; }
+  .desktop-sidebar nav a, .desktop-sidebar nav button { min-height: 51px; gap: 20px; color: #d1dce0; font-size: 14px; }
+  .desktop-sidebar nav a[aria-current='page'] { color: #49c2f3; border-color: #3b88a6; }
+  .desktop-sidebar nav svg { flex-shrink: 0; width: 30px; height: 30px; }
+  .desktop-learning-content { padding: 42px 3.2vw 24px 7vw; max-width: none; }
+  .desktop-right-rail { width: 32vw; padding: 26px 7vw 24px 0; gap: 17px; scrollbar-width: none; }
+  .desktop-right-rail > div:first-child { margin-bottom: 15px; min-height: 28px; }
+  .desktop-right-rail section { padding: 18px; border-radius: 17px; }
+  .desktop-right-rail h3 { font-size: 18px; }
+  .desktop-right-rail section p { color: #c9d3d8; }
+  .desktop-right-rail section a { letter-spacing: .5px; }
+  .desktop-right-rail section:nth-of-type(2) { min-height: 170px; }
+  .desktop-right-rail section:nth-of-type(3) { min-height: 160px; }
+  .desktop-learning-shell .path-stop-wrap { min-height: 84px; }
+  .desktop-learning-shell .path-connector { height: 0; margin: 0; }
+  .desktop-learning-shell .path-scenery.tennis { top: 400px; }
+}
+@media (min-width: 1800px) {
+  .desktop-learning-content { padding-top: 48px; }
+  .path-stop-wrap { min-height: 116px; }
+  .path-scenery { width: 180px; }
+  .path-scenery.tennis { top: 445px; width: 165px; }
+}
+@media (max-width: 1200px) and (min-width: 1024px) {
+  .desktop-learning-content { padding-left: 24px; padding-right: 24px; }
+  .desktop-right-rail { width: 310px; padding-right: 20px; }
+  .desktop-sidebar nav a, .desktop-sidebar nav button { gap: 10px; font-size: 12px; }
+  .guidebook-btn { padding: 10px; font-size: 10px; }
+}
+@media (max-width: 600px) {
+  .path-sticky-bar { border-radius: 0 0 14px 14px; }
+  .path-sticky-copy > p:first-child { font-size: 12px; }
+  .path-sticky-bar h2 { font-size: 19px; }
+  .guidebook-btn { padding: 10px; font-size: 10px; gap: 5px; }
+  .path-scenery { width: 106px; }
+  .path-scenery.tennis { width: 100px; }
+}

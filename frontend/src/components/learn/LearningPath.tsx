@@ -6,15 +6,16 @@ import { useReducedMotion } from "framer-motion";
 import { useApi, type Course, type LessonNode } from "@/lib/api";
 import { motion, softSpring, springPop } from "@/lib/motion";
 import { showToast } from "@/lib/toast";
+import { PathScenery, TreasureChest } from "./PathScenery";
 
 /** Center → left → center → right so even nodes line up with the first. */
-const PATH_X = [0, -72, 0, 72, 0, -72, 0, 72];
+const PATH_X = [0, -44, -68, -44, 0, 44, 68, 44];
 
 const CONNECTOR_W = 220;
 const CONNECTOR_H = 32;
 
 const UNIT_THEMES = [
-  { bg: "#136b8b", edge: "#0d4e68", mist: "#b9e9ff", soft: "#d7f3ff" },
+  { bg: "#17afe9", edge: "#1494c9", mist: "#c1edff", soft: "#d7f3ff" },
   { bg: "#655099", edge: "#45386a", mist: "#dccfff", soft: "#ebe2ff" },
   { bg: "#2b6e4f", edge: "#1d4d37", mist: "#b8f0d0", soft: "#d7f7e6" },
 ];
@@ -168,6 +169,10 @@ export function LearningPath() {
     );
   }
 
+  if (built.units.length === 0) {
+    return <p className="learning-message" role="status">Your course is being prepared. Check back soon.</p>;
+  }
+
   const complete = data.units.every((u) =>
     u.skills.every((s) => s.lessons.every((l) => l.completed)),
   );
@@ -189,12 +194,12 @@ export function LearningPath() {
       >
         <div className="path-sticky-copy">
           <p style={{ color: theme.mist }}>
-            SECTION 1 · UNIT {activeUnit + 1}
-            {totalInUnit > 0 ? ` · ${doneInUnit}/${totalInUnit}` : ""}
+            <span aria-hidden>← </span> SECTION 1, UNIT {activeUnit + 1}
           </p>
           <h2 style={{ color: "#fff" }}>{activeMeta.unit.title}</h2>
-          <p className="unit-subtitle" style={{ color: theme.soft }}>
+          <p className="unit-subtitle sr-only" style={{ color: theme.soft }}>
             {unitSubtitle(activeMeta.unit)}
+            {totalInUnit > 0 ? ` · ${doneInUnit}/${totalInUnit} completed` : ""}
           </p>
         </div>
         <button
@@ -202,7 +207,7 @@ export function LearningPath() {
           className="guidebook-btn"
           onClick={() => showToast("Guidebook — Coming soon")}
         >
-          GUIDEBOOK
+          <span aria-hidden>▤</span> GUIDEBOOK
         </button>
       </div>
 
@@ -224,6 +229,8 @@ export function LearningPath() {
         >
           <div className="path-unit-sentinel" aria-hidden />
           <div className="path-track">
+            <PathScenery />
+            <PathScenery tennis />
             {stops.map((stop, stopLocal) => {
               const offset = PATH_X[stop.globalIndex % PATH_X.length];
               const next = stops[stopLocal + 1];
@@ -260,7 +267,7 @@ export function LearningPath() {
                           )
                         }
                       >
-                        <span aria-hidden>{stop.unlocked ? "🎁" : "📦"}</span>
+                        <TreasureChest />
                       </button>
                       <p className="path-label-muted">Chest</p>
                     </motion.div>
@@ -323,7 +330,7 @@ export function LearningPath() {
                     <motion.div
                       className="node-ring"
                       style={{
-                        background: `conic-gradient(var(--duo-yellow) ${crownShare * 360}deg, var(--duo-border) 0deg)`,
+                        background: isCurrent ? `conic-gradient(var(--duo-blue) ${crownShare * 360}deg, var(--duo-border) 0deg)` : "transparent",
                       }}
                     >
                       {lesson.unlocked ? (

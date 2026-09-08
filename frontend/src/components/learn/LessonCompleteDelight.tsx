@@ -151,7 +151,7 @@ export function LessonCompleteDelight({
   saved: boolean;
 }) {
   const reduce = useReducedMotion();
-  const line = COACH_LINES[Math.floor(Math.random() * COACH_LINES.length)];
+  const line = COACH_LINES[Math.abs(Math.round(xp)) % COACH_LINES.length];
 
   useEffect(() => {
     playLessonCompleteFanfare();
