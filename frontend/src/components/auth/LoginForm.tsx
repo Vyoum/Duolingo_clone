@@ -7,6 +7,15 @@ import { showToast } from "@/lib/toast";
 
 const DEMO_COOKIE = "duo_demo_session=1; path=/; max-age=604800; SameSite=Lax";
 
+/** Fixed mocked learner (same UUID as gateway MOCK_USER_ID / README). */
+export const DEMO_LEARNER = {
+  name: "Vyoum",
+  username: "Vyoumm",
+  password: "demo123",
+  userId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  progress: "20 XP · 2-day streak · Greetings done",
+};
+
 export function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -19,19 +28,33 @@ export function LoginForm() {
     router.refresh();
   }
 
+  function useDemoAccount() {
+    setEmail(DEMO_LEARNER.username);
+    setPassword(DEMO_LEARNER.password);
+    setShowPassword(true);
+    enterDemo();
+  }
+
+  function fillDemoCredentials() {
+    setEmail(DEMO_LEARNER.username);
+    setPassword(DEMO_LEARNER.password);
+    setShowPassword(true);
+    showToast("Demo credentials filled — click LOG IN");
+  }
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     enterDemo();
   }
 
   return (
-    <div className="flex min-h-full flex-col bg-[#131f24]">
+    <div className="relative flex min-h-full flex-col bg-[#131f24]">
       {/* Top bar */}
-      <header className="flex items-center justify-between px-6 py-5 md:px-10">
+      <header className="flex items-start justify-between gap-4 px-4 py-4 md:px-8 md:py-5">
         <Link
           href="/login"
           aria-label="Close"
-          className="flex h-10 w-10 items-center justify-center text-[#afafaf] transition hover:text-white"
+          className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center text-[#afafaf] transition hover:text-white"
         >
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden>
             <path
@@ -42,20 +65,56 @@ export function LoginForm() {
             />
           </svg>
         </Link>
-        <Link
-          href="/login"
-          onClick={(e) => {
-            e.preventDefault();
-            enterDemo();
-          }}
-          className="rounded-2xl border-2 border-[#1cb0f6] px-4 py-2.5 text-sm font-extrabold tracking-wide text-[#1cb0f6] transition hover:bg-[#1cb0f6]/10"
+
+        <aside
+          className="w-full max-w-[280px] rounded-2xl border-2 border-[#37464f] bg-[#1a2c32] p-3 shadow-[0_8px_24px_rgba(0,0,0,0.35)] sm:max-w-[300px]"
+          aria-label="Demo learner credentials"
         >
-          SIGN UP
-        </Link>
+          <p className="text-[10px] font-black uppercase tracking-[0.14em] text-[#1cb0f6]">
+            Demo learner
+          </p>
+          <p className="mt-1 text-[15px] font-extrabold text-white">{DEMO_LEARNER.name}</p>
+          <dl className="mt-2 space-y-1 text-[12px] font-bold leading-snug text-[#afafaf]">
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-[#7a929c]">User</dt>
+              <dd className="min-w-0 break-all text-white">{DEMO_LEARNER.username}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-[#7a929c]">Pass</dt>
+              <dd className="text-white">{DEMO_LEARNER.password}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-[#7a929c]">ID</dt>
+              <dd className="min-w-0 break-all font-mono text-[10px] text-[#d1d0d3]">
+                {DEMO_LEARNER.userId}
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-[#7a929c]">Seed</dt>
+              <dd className="text-[#9ce455]">{DEMO_LEARNER.progress}</dd>
+            </div>
+          </dl>
+          <div className="mt-3 flex flex-col gap-2">
+            <button
+              type="button"
+              onClick={fillDemoCredentials}
+              className="rounded-xl border-2 border-[#37464f] px-3 py-2 text-[11px] font-extrabold tracking-wide text-[#afafaf] transition hover:border-[#1cb0f6] hover:text-[#1cb0f6]"
+            >
+              FILL CREDENTIALS
+            </button>
+            <button
+              type="button"
+              onClick={useDemoAccount}
+              className="rounded-xl bg-[#1cb0f6] px-3 py-2 text-[11px] font-extrabold tracking-wide text-[#131f24] shadow-[0_3px_0_#1899d6] transition active:translate-y-[1px] active:shadow-[0_2px_0_#1899d6]"
+            >
+              LOG IN AS DEMO
+            </button>
+          </div>
+        </aside>
       </header>
 
       {/* Centered form — web modal width */}
-      <main className="flex flex-1 flex-col items-center px-6 pb-10 pt-6 md:pt-10">
+      <main className="flex flex-1 flex-col items-center px-6 pb-10 pt-2 md:pt-6">
         <div className="w-full max-w-[375px]">
           <h1 className="mb-8 text-center text-[28px] font-extrabold leading-none text-white">
             Log in
@@ -93,7 +152,6 @@ export function LoginForm() {
               <button
                 type="button"
                 onClick={() => {
-                  // Demo: toggle visibility; real Duo opens a reset flow on FORGOT?
                   if (password.length === 0) {
                     showToast("Password reset — Coming soon in demo mode");
                     return;
@@ -115,7 +173,7 @@ export function LoginForm() {
           </form>
 
           <p className="mt-4 text-center text-[14px] font-bold leading-snug text-[#1cb0f6]">
-            Also, this is demo mode — just click on Log in
+            Demo mode — any login works; use the card above for the seeded learner.
           </p>
 
           {/* OR divider */}

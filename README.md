@@ -218,7 +218,7 @@ The XP, streak, hearts, completed lessons, and unlocked path must survive the re
 | `/quests` | Live daily quest progress from Gamification |
 | `/profile` | Live learner statistics and locked/unlocked badge grid; social data is illustrative |
 | `/shop` | Assignment UI for heart-related and placeholder shop actions; there is no payment processing |
-| `/login` | Visual demo login; the backend intentionally uses one mocked learner |
+| `/login` | Visual demo login with top-right demo-learner card; backend uses one mocked learner |
 | `/api/v1/{path}` | Server-side Next.js proxy to the public gateway; not a screen |
 
 Listen and Speak depend on browser media capabilities. They do not deduct hearts. Legendary uses seeded exercises from Content, rejects stale submissions, treats timeout as failure, and awards its XP only once.
@@ -417,6 +417,7 @@ Do not commit connection URLs or credentials. Configure them in Render/Vercel en
 ## Assumptions and limitations
 
 - One fixed mocked user (`aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa`), as requested. Incoming user headers are ignored at the gateway. All visitors share this demo learner; authentication and per-visitor accounts are outside this implementation. With `SEED_DEMO_LEARNER=true` (Compose default), that learner starts with both Greetings lessons completed, 20 XP, and a 2-day streak so the path and profile are immediately demoable.
+  - **Demo login card (UI only):** name `Vyoum`, username `Vyoumm`, password `demo123`. The `/login` screen shows these in the top-right box; any submitted credentials still enter the same mocked session.
 - One Spanish course, two units, five skills, six lessons, nine seeded exercises covering all five types. Curriculum is read-only after seed.
 - First completion grants the lesson's configured XP; later practice completions grant 5 XP. Completing a lesson advances the streak regardless of mistakes.
 - Streaks and daily quests use UTC dates, including delayed/out-of-order events. Yesterday's streak remains visible until the current day is missed. Quests are progress goals, with no extra currency or claim action.
