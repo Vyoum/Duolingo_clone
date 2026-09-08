@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useReducedMotion } from "framer-motion";
 import { useApi, type Course, type LessonNode } from "@/lib/api";
 import { motion, softSpring, springPop } from "@/lib/motion";
@@ -9,14 +9,14 @@ import { showToast } from "@/lib/toast";
 import { PathScenery, TreasureChest } from "./PathScenery";
 
 /** Center → left → center → right so even nodes line up with the first. */
-const PATH_X = [0, -44, -68, -44, 0, 44, 68, 44];
+const PATH_X = [0, -62, -96, -62, 0, 62, 96, 62];
 
 const CONNECTOR_W = 220;
 const CONNECTOR_H = 32;
 
 const UNIT_THEMES = [
   { bg: "#17afe9", edge: "#1494c9", mist: "#c1edff", soft: "#d7f3ff" },
-  { bg: "#655099", edge: "#45386a", mist: "#dccfff", soft: "#ebe2ff" },
+  { bg: "#cc348d", edge: "#a42370", mist: "#ffd1ec", soft: "#ffe4f3" },
   { bg: "#2b6e4f", edge: "#1d4d37", mist: "#b8f0d0", soft: "#d7f7e6" },
 ];
 
@@ -64,19 +64,19 @@ function buildStops(data: Course): { units: { unit: Course["units"][number]; uni
   let globalIndex = 0;
   const units = data.units.map((unit, unitIndex) => {
     const stops: PathStop[] = [];
-    unit.skills.forEach((skill, skillIndex) => {
+    unit.skills.forEach((skill) => {
       skill.lessons.forEach((lesson, li) => {
         stops.push({ kind: "lesson", skill, lesson, li, globalIndex: globalIndex++ });
       });
-      if (skillIndex < unit.skills.length - 1) {
-        const prev = skill.lessons[skill.lessons.length - 1];
-        stops.push({
-          kind: "chest",
-          id: `chest-${skill.id}`,
-          unlocked: Boolean(prev?.completed),
-          globalIndex: globalIndex++,
-        });
-      }
+      // A chest closes out every skill, including the last one in the unit, so
+      // short units still have enough stops to wind down the page.
+      const prev = skill.lessons[skill.lessons.length - 1];
+      stops.push({
+        kind: "chest",
+        id: `chest-${skill.id}`,
+        unlocked: Boolean(prev?.completed),
+        globalIndex: globalIndex++,
+      });
     });
     return { unit, unitIndex, stops };
   });
@@ -107,6 +107,7 @@ export function LearningPath() {
   const [currentInView, setCurrentInView] = useState(true);
   const currentRef = useRef<HTMLDivElement | null>(null);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
+  const bannerRef = useRef<HTMLDivElement | null>(null);
 
   const built = useMemo(() => (data ? buildStops(data) : null), [data]);
 
@@ -122,19 +123,29 @@ export function LearningPath() {
     if (!built) return;
     const nodes = sectionRefs.current.filter(Boolean) as HTMLElement[];
     if (!nodes.length) return;
-    const io = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (!visible) return;
-        const idx = Number((visible.target as HTMLElement).dataset.unitIndex);
-        if (!Number.isNaN(idx)) setActiveUnit(idx);
-      },
-      { rootMargin: "-30% 0px -45% 0px", threshold: [0.15, 0.4, 0.7] },
-    );
-    nodes.forEach((n) => io.observe(n));
-    return () => io.disconnect();
+    let frame = 0;
+    const update = () => {
+      if (!bannerRef.current?.getClientRects().length) return;
+      const boundary = bannerRef.current.getBoundingClientRect().bottom + 60;
+      let next = 0;
+      nodes.forEach((node, index) => {
+        if (node.getBoundingClientRect().top <= boundary) next = index;
+      });
+      setActiveUnit(next);
+    };
+    const schedule = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(update); };
+    const observer = new ResizeObserver(schedule);
+    nodes.forEach(node => observer.observe(node));
+    if (bannerRef.current) observer.observe(bannerRef.current);
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    schedule();
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+    };
   }, [built]);
 
   useEffect(() => {
@@ -186,11 +197,12 @@ export function LearningPath() {
   return (
     <div className="learning-path">
       <div
+        ref={bannerRef}
         className="path-sticky-bar"
         style={{
           background: theme.bg,
-          borderBottomColor: theme.edge,
-        }}
+          "--unit-edge": theme.edge,
+        } as CSSProperties}
       >
         <div className="path-sticky-copy">
           <p style={{ color: theme.mist }}>
@@ -226,11 +238,17 @@ export function LearningPath() {
           }}
           aria-label={`Unit ${unitIndex + 1}: ${unit.title}`}
           className="path-unit"
+          style={{
+            "--unit-color": UNIT_THEMES[unitIndex % UNIT_THEMES.length].bg,
+            "--unit-edge": UNIT_THEMES[unitIndex % UNIT_THEMES.length].edge,
+          } as CSSProperties}
         >
           <div className="path-unit-sentinel" aria-hidden />
+          {unitIndex > 0 && <h3 className="unit-boundary"><span>{unit.title}</span></h3>}
           <div className="path-track">
             <PathScenery />
-            <PathScenery tennis />
+            {/* Skip the final tennis character so the last unit doesn't end with another racket duo. */}
+            {unitIndex < built.units.length - 1 && <PathScenery tennis />}
             {stops.map((stop, stopLocal) => {
               const offset = PATH_X[stop.globalIndex % PATH_X.length];
               const next = stops[stopLocal + 1];
@@ -330,7 +348,7 @@ export function LearningPath() {
                     <motion.div
                       className="node-ring"
                       style={{
-                        background: isCurrent ? `conic-gradient(var(--duo-blue) ${crownShare * 360}deg, var(--duo-border) 0deg)` : "transparent",
+                        background: isCurrent ? `conic-gradient(var(--unit-color) ${crownShare * 360}deg, var(--duo-border) 0deg)` : "transparent",
                       }}
                     >
                       {lesson.unlocked ? (

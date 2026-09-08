@@ -38,6 +38,8 @@ LESSON_FOOD_1 = uuid.UUID("44444444-4444-4444-4444-444444444403")
 LESSON_TRAVEL_1 = uuid.UUID("44444444-4444-4444-4444-444444444404")
 LESSON_FAMILY_1 = uuid.UUID("44444444-4444-4444-4444-444444444405")
 LESSON_NUMBERS_1 = uuid.UUID("44444444-4444-4444-4444-444444444406")
+LESSON_FAMILY_2 = uuid.UUID("44444444-4444-4444-4444-444444444407")
+LESSON_NUMBERS_2 = uuid.UUID("44444444-4444-4444-4444-444444444408")
 
 
 def _exercise(
@@ -67,6 +69,7 @@ async def seed() -> None:
         existing = await session.execute(select(Course).limit(1))
         if existing.scalar_one_or_none() is not None:
             print("Seed skipped: courses already present")
+            await _ensure_daily_life_lessons(session)
             return
 
         course = Course(
@@ -126,7 +129,9 @@ async def seed() -> None:
             Lesson(id=LESSON_FOOD_1, skill_id=SKILL_FOOD, sort_order=1, xp_reward=15),
             Lesson(id=LESSON_TRAVEL_1, skill_id=SKILL_TRAVEL, sort_order=1, xp_reward=15),
             Lesson(id=LESSON_FAMILY_1, skill_id=SKILL_FAMILY, sort_order=1, xp_reward=10),
+            Lesson(id=LESSON_FAMILY_2, skill_id=SKILL_FAMILY, sort_order=2, xp_reward=10),
             Lesson(id=LESSON_NUMBERS_1, skill_id=SKILL_NUMBERS, sort_order=1, xp_reward=10),
+            Lesson(id=LESSON_NUMBERS_2, skill_id=SKILL_NUMBERS, sort_order=2, xp_reward=10),
         ]
         session.add_all(lessons)
 
@@ -206,7 +211,7 @@ async def seed() -> None:
                     correct_index=0,
                 ),
             ),
-            # Family — type answer
+            # Family — type answer + multiple choice
             _exercise(
                 LESSON_FAMILY_1,
                 1,
@@ -215,7 +220,24 @@ async def seed() -> None:
                     accepted_answers=["madre"],
                 ),
             ),
-            # Numbers — fill blank
+            _exercise(
+                LESSON_FAMILY_2,
+                1,
+                MultipleChoicePayload(
+                    prompt="How do you say 'father' in Spanish?",
+                    options=["padre", "hermano", "amigo", "hijo"],
+                    correct_index=0,
+                ),
+            ),
+            _exercise(
+                LESSON_FAMILY_2,
+                2,
+                TypeAnswerPayload(
+                    prompt="Type the Spanish word for 'sister'.",
+                    accepted_answers=["hermana"],
+                ),
+            ),
+            # Numbers — fill blank + match
             _exercise(
                 LESSON_NUMBERS_1,
                 1,
@@ -226,6 +248,27 @@ async def seed() -> None:
                     correct_answer="dos",
                 ),
             ),
+            _exercise(
+                LESSON_NUMBERS_2,
+                1,
+                MatchPayload(
+                    prompt="Match the numbers",
+                    pairs=[
+                        MatchPair(left="one", right="uno"),
+                        MatchPair(left="three", right="tres"),
+                        MatchPair(left="five", right="cinco"),
+                    ],
+                ),
+            ),
+            _exercise(
+                LESSON_NUMBERS_2,
+                2,
+                MultipleChoicePayload(
+                    prompt="What does 'cuatro' mean?",
+                    options=["two", "three", "four", "six"],
+                    correct_index=2,
+                ),
+            ),
         ]
         session.add_all(exercises)
         await session.commit()
@@ -233,6 +276,74 @@ async def seed() -> None:
             f"Seeded course {COURSE_ID}: "
             f"{len(skills)} skills, {len(lessons)} lessons, {len(exercises)} exercises"
         )
+
+
+async def _ensure_daily_life_lessons(session) -> None:
+    """Add Family 2 / Numbers 2 when an older seed already populated the course."""
+    extras = [
+        (
+            LESSON_FAMILY_2,
+            SKILL_FAMILY,
+            2,
+            10,
+            [
+                MultipleChoicePayload(
+                    prompt="How do you say 'father' in Spanish?",
+                    options=["padre", "hermano", "amigo", "hijo"],
+                    correct_index=0,
+                ),
+                TypeAnswerPayload(
+                    prompt="Type the Spanish word for 'sister'.",
+                    accepted_answers=["hermana"],
+                ),
+            ],
+        ),
+        (
+            LESSON_NUMBERS_2,
+            SKILL_NUMBERS,
+            2,
+            10,
+            [
+                MatchPayload(
+                    prompt="Match the numbers",
+                    pairs=[
+                        MatchPair(left="one", right="uno"),
+                        MatchPair(left="three", right="tres"),
+                        MatchPair(left="five", right="cinco"),
+                    ],
+                ),
+                MultipleChoicePayload(
+                    prompt="What does 'cuatro' mean?",
+                    options=["two", "three", "four", "six"],
+                    correct_index=2,
+                ),
+            ],
+        ),
+    ]
+    added = 0
+    for lesson_id, skill_id, sort_order, xp_reward, payloads in extras:
+        found = await session.execute(select(Lesson).where(Lesson.id == lesson_id))
+        if found.scalar_one_or_none() is not None:
+            continue
+        skill = await session.execute(select(Skill).where(Skill.id == skill_id))
+        if skill.scalar_one_or_none() is None:
+            continue
+        session.add(
+            Lesson(
+                id=lesson_id,
+                skill_id=skill_id,
+                sort_order=sort_order,
+                xp_reward=xp_reward,
+            )
+        )
+        for i, payload in enumerate(payloads, start=1):
+            session.add(_exercise(lesson_id, i, payload))
+        added += 1
+    if added:
+        await session.commit()
+        print(f"Added {added} Daily Life lesson(s)")
+    else:
+        print("Daily Life extras already present")
 
 
 async def main() -> None:

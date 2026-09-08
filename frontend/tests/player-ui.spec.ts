@@ -388,3 +388,31 @@ for (const width of [390, 1440]) {
     expect(requests).toHaveLength(5);
   });
 }
+
+for (const width of [390, 1440]) {
+  test(`unit banner follows scrolling in both directions at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 844 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.route('**/api/v1/me', route => route.fulfill({ json: { xp: 20, hearts: 5, streak: 2, achievements: [] } }));
+    await page.route('**/api/v1/path', route => route.fulfill({ json: {
+      name: 'Spanish', units: ['Go on errands', 'Celebrate birthdays'].map((title, unit) => ({
+        id: `unit-${unit}`, title, skills: [{ id: `skill-${unit}`, title, icon: 'wave', crowns: 0,
+          lessons: Array.from({ length: 10 }, (_, lesson) => ({ id: `${unit}-${lesson}`, xp_reward: 15, completed: false, unlocked: lesson === 0 })),
+        }],
+      })),
+    } }));
+    await page.goto('/');
+    const path = page.locator('.learning-path:visible');
+    const banner = path.locator('.path-sticky-bar');
+    await expect(banner.getByRole('heading')).toHaveText('Go on errands');
+    const firstColor = await banner.evaluate(element => getComputedStyle(element).backgroundColor);
+    await path.locator('.unit-boundary').evaluate(element => window.scrollBy(0, element.getBoundingClientRect().top - 150));
+    await expect(banner.getByRole('heading')).toHaveText('Celebrate birthdays');
+    await expect(banner).not.toHaveCSS('background-color', firstColor);
+    await expect(path.locator('.unit-boundary')).toHaveText('Celebrate birthdays');
+    await expect(path.locator('[data-unit-index="1"] .path-node.ready').first()).toHaveCSS('background-color', 'rgb(204, 52, 141)');
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await expect(banner.getByRole('heading')).toHaveText('Go on errands');
+    await expect(banner).toHaveCSS('background-color', firstColor);
+  });
+}

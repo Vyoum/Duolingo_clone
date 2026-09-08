@@ -688,7 +688,10 @@ progress::-moz-progress-bar { background: var(--duo-green); border-radius: 20px;
 .guidebook-btn { background: transparent; border-color: #1494c9; border-bottom-width: 4px; display: flex; align-items: center; gap: 10px; }
 .guidebook-btn > span { font-size: 26px; line-height: 1; }
 .path-track { padding-top: 24px; padding-bottom: 30px; }
-.path-stop-wrap { min-height: 102px; }
+/* Every unit keeps roughly a screen of height so the sticky banner has room to
+   swap colour while scrolling, even for units with only a couple of lessons. */
+.path-unit { min-height: 78vh; }
+.path-stop-wrap { min-height: 128px; }
 .path-connector { visibility: hidden; height: 16px; }
 .path-stop > p, .path-stop > small { position: absolute; width: 190px; left: -35px; opacity: 0; pointer-events: none; z-index: 4; }
 .path-stop:hover > p, .path-stop:focus-within > p { opacity: 1; background: var(--duo-bg); border-radius: 8px; padding: 4px; }
@@ -758,4 +761,16 @@ progress::-moz-progress-bar { background: var(--duo-green); border-radius: 20px;
   .guidebook-btn { padding: 10px; font-size: 10px; gap: 5px; }
   .path-scenery { width: 106px; }
   .path-scenery.tennis { width: 100px; }
+}
+
+/* Unit boundaries and the sticky header share the curriculum unit theme. */
+.path-sticky-bar { transition: background-color 240ms ease; }
+.path-sticky-bar .guidebook-btn { border-color: var(--unit-edge, #1494c9); transition: border-color 240ms ease; }
+.unit-boundary { display: flex; align-items: center; gap: 16px; margin: 24px 0 46px; color: #617780; font-size: 17px; font-weight: 900; text-align: center; }
+.unit-boundary::before, .unit-boundary::after { content: ''; flex: 1; min-width: 20px; height: 2px; background: var(--duo-border); }
+.unit-boundary span { max-width: 65%; }
+.path-unit .path-node.done, .path-unit .path-node.ready { background: var(--unit-color); box-shadow: 0 7px 0 var(--unit-edge); }
+.path-unit .start-bubble { color: var(--unit-color); }
+@media (prefers-reduced-motion: reduce) {
+  .path-sticky-bar, .path-sticky-bar .guidebook-btn { transition: none; }
 }
