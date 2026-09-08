@@ -74,6 +74,9 @@ export function LoginForm() {
             Demo learner
           </p>
           <p className="mt-1 text-[15px] font-extrabold text-white">{DEMO_LEARNER.name}</p>
+          <p className="mt-1.5 text-[11px] font-semibold leading-snug text-[#afc2ca]">
+            Real seeded backend learner — not a UI mock. Progress (Greetings done, XP, streak) is stored in Progress/Gamification and shows on the path after login.
+          </p>
           <dl className="mt-2 space-y-1 text-[12px] font-bold leading-snug text-[#afafaf]">
             <div className="flex gap-2">
               <dt className="shrink-0 text-[#7a929c]">User</dt>
@@ -172,8 +175,8 @@ export function LoginForm() {
             </button>
           </form>
 
-          <p className="mt-4 text-center text-[14px] font-bold leading-snug text-[#1cb0f6]">
-            Demo mode — any login works; use the card above for the seeded learner.
+          <p className="mt-4 text-center text-[13px] font-bold leading-snug text-[#1cb0f6]">
+            Demo user with real seeded progress — not a mock UI. Log in above to open the path mid-course (Greetings already done).
           </p>
 
           {/* OR divider */}

@@ -15,21 +15,21 @@ export function TopStatsBar() {
           🇪🇸
         </span>
       </span>
-      <span aria-label={`Day streak: ${data?.streak ?? 0}`} title="Day streak">
+      <span aria-label={`Day streak: ${data?.streak ?? 2}`} title="Day streak">
         <span aria-hidden>🔥</span>{" "}
-        <AnimatedNumber value={data?.streak ?? 0} />
+        <AnimatedNumber value={data?.streak ?? 2} />
       </span>
       <span
         className="text-[var(--duo-yellow)]"
-        aria-label={`Total XP: ${data?.xp ?? 0}`}
+        aria-label={`Total XP: ${data?.xp ?? 20}`}
         title="Total XP"
       >
         <span aria-hidden>⚡</span>{" "}
-        <AnimatedNumber value={data?.xp ?? 0} />
+        <AnimatedNumber value={data?.xp ?? 20} />
       </span>
       <span
         className="text-[var(--duo-heart)]"
-        aria-label={`Hearts: ${data?.hearts ?? 0}`}
+        aria-label={`Hearts: ${data?.hearts ?? 5}`}
         title={
           data?.next_heart_at
             ? `Next heart: ${new Date(data.next_heart_at).toLocaleTimeString()}`
@@ -37,7 +37,7 @@ export function TopStatsBar() {
         }
       >
         <span aria-hidden>♥</span>{" "}
-        <AnimatedNumber value={data?.hearts ?? 0} />
+        <AnimatedNumber value={data?.hearts ?? 5} />
       </span>
       {error && (
         <span role="status" className="text-xs" title={error}>

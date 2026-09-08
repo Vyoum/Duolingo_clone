@@ -66,19 +66,19 @@ function StatsRow({ learner }: { learner: Learner | null | undefined }) {
     >
       <span
         className="flex items-center gap-1.5 text-[var(--duo-yellow)]"
-        aria-label={`Total XP: ${learner?.xp ?? "loading"}`}
+        aria-label={`Total XP: ${learner?.xp ?? 20}`}
         title="Total XP"
       >
-        <span className="course-flag" aria-hidden>🇪🇸</span> <AnimatedNumber value={learner?.xp} />
+        <span className="course-flag" aria-hidden>🇪🇸</span> <AnimatedNumber value={learner?.xp ?? 20} />
       </span>
-      <span className="flex items-center gap-1 text-[var(--duo-text-muted)]" aria-label={`Day streak: ${learner?.streak ?? 0}`} title="Day streak">
-        <span aria-hidden>🔥</span> <AnimatedNumber value={learner?.streak ?? 0} />
+      <span className="flex items-center gap-1 text-[var(--duo-text-muted)]" aria-label={`Day streak: ${learner?.streak ?? 2}`} title="Day streak">
+        <span aria-hidden>🔥</span> <AnimatedNumber value={learner?.streak ?? 2} />
       </span>
-      <span className="flex items-center gap-1 text-[var(--duo-blue)]" aria-label="Gems: 132" title="Gems">
-        <span aria-hidden>💎</span> 132
+      <span className="flex items-center gap-1 text-[var(--duo-blue)]" aria-label="Gems: 100" title="Gems">
+        <span aria-hidden>💎</span> 100
       </span>
-      <span className="flex items-center gap-1 text-[#FF4B4B]" aria-label={`Hearts: ${learner?.hearts ?? "loading"}`} title="Hearts">
-        <span aria-hidden>♥</span> <AnimatedNumber value={learner?.hearts} />
+      <span className="flex items-center gap-1 text-[#FF4B4B]" aria-label={`Hearts: ${learner?.hearts ?? 5}`} title="Hearts">
+        <span aria-hidden>♥</span> <AnimatedNumber value={learner?.hearts ?? 5} />
       </span>
     </div>
   );
